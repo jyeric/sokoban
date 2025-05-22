@@ -68,16 +68,3 @@ CopyTilesToVRAM:
   or c
   jr nz, .copy
   ret
-
-SECTION "Data", ROM0
-Tiles:
-; ID 0: smiling face
- DB %01111110
- DB %10000001
- DB %10100101
- DB %10000001
- DB %10100101
- DB %10011001
- DB %10000001
- DB %01111110
-TilesEnd:
