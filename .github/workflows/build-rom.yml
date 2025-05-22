@@ -1,0 +1,36 @@
+name: Build Game Boy ROM
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y wget
+
+      - name: Install latest RGBDS
+        run: |
+          mkdir rgbds
+          # Download the latest RGBDS release
+          wget $(curl -s https://api.github.com/repos/gbdev/rgbds/releases/latest | grep -o "http.*linux-x86_64\.tar\.xz") -O rgbds/rgbds.tar.xz
+          tar -xf rgbds/rgbds.tar.xz -C rgbds
+          # Install RGBDS
+          sudo rgbds/install.sh
+
+      - name: Build ROM
+        run: |
+          rgbasm -o build/main.o main.asm
+          rgblink -o build/game.gb build/main.o
+          rgbfix -v build/game.gb
+
+      - name: Upload ROM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gameboy-rom
+          path: build/game.gb
