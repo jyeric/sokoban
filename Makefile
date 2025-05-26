@@ -1,5 +1,7 @@
 .PHONY: run all clean rebuild
 
+all: build/game.gb
+
 build:
 	mkdir build
 
@@ -18,8 +20,6 @@ ifeq ($(OS),Windows_NT)
 else
 	xdg-open build/game.gb
 endif
-
-all: build/game.gb
 
 clean:
 ifeq ($(OS),Windows_NT)
