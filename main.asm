@@ -12,7 +12,7 @@ EntryPoint:
   ld a, 0
   ld [rLCDC], a
 
-  ld a,%11111100 ; b&w palette
+  ld a, %11111100 ; b&w palette
   ld [rOBP0], a
 
   call   CopyTilesToVRAM
@@ -21,9 +21,9 @@ EntryPoint:
   call   ResetOAM
 
   ld hl, _OAMRAM
-  ld [hl],50  ; Y coordinate
+  ld [hl], 50  ; Y coordinate
   inc hl
-  ld [hl],80  ; X coordinate
+  ld [hl], 80  ; X coordinate
   inc hl
 
 ; LCD on, enable object layer (no background)
@@ -43,13 +43,13 @@ WaitVBlank:
 ResetOAM:
 ; input:
 ; * HL: location of OAM or Shadow OAM
-  ld b,40*4
-  ld a,0
+  ld b, 40*4
+  ld a, 0
 .loop:
-  ld [hl],a
+  ld [hl], a
   inc hl
   dec b
-  jr nz,.loop
+  jr nz, .loop
   ret
 
 CopyTilesToVRAM:
@@ -57,14 +57,14 @@ CopyTilesToVRAM:
   ld hl, _VRAM
   ld bc, TilesEnd - Tiles
 .copy:
-  ld a,[de]
+  ld a, [de]
   inc de
-  ld [hl],a
+  ld [hl], a
   inc hl
-  ld [hl],a
+  ld [hl], a
   inc hl
   dec bc
-  ld a,b
+  ld a, b
   or c
   jr nz, .copy
   ret
