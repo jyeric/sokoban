@@ -7,7 +7,7 @@ build:
 
 # assemble
 build/main.o: main.asm data.asm hardware.inc | build
-	rgbasm -o $@ $<
+	rgbasm -Weverything -o $@ $<
 
 # link and fix
 build/game.gb: build/main.o
