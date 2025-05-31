@@ -1,13 +1,23 @@
-.PHONY: run all clean rebuild
+.PHONY: run all clean rebuild debug
 
 all: build/game.gb
+
+debug: main.asm data.asm hardware.inc | build
+	rgbasm -Weverything -E -o build/debug.o main.asm
+	rgblink -n build/debug.sym -m build/debug.map -o build/debug.gb build/debug.o
+	rgbfix -v -p 0xFF build/debug.gb
+ifeq ($(OS),Windows_NT)
+	cmd /c start build\debug.gb
+else
+	xdg-open build/debug.gb
+endif
 
 build:
 	mkdir build
 
 # assemble
 build/main.o: main.asm data.asm hardware.inc | build
-	rgbasm -Weverything -o $@ $<
+	rgbasm -o $@ $<
 
 # link and fix
 build/game.gb: build/main.o

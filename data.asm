@@ -1,3 +1,4 @@
+; Character map
 CHARMAP " ", 0
 CHARMAP "$", 1
 CHARMAP "#", 2
@@ -40,6 +41,16 @@ CHARMAP "Y", 38
 CHARMAP "Z", 39
 CHARMAP ".", 40
 CHARMAP "-", 41
+CHARMAP ",", 42
+CHARMAP "!", 43
+CHARMAP "~", 44
+
+; Constants
+DEF SPLASH_STATE      EQU 0
+DEF LEVEL_LOAD_STATE  EQU 1
+DEF LEVEL_PLAY_STATE  EQU 2
+DEF LEVEL_WIN_STATE   EQU 3
+DEF GAME_WIN_STATE    EQU 4
 
 SECTION "TileData", ROM0
 Tiles:
@@ -72,7 +83,7 @@ Tiles:
   DB %00111100
   DB %01000010
   DB %01100011
-; ID 4-41: characters
+; ID 4-41: characters, from labnotes.html#example-from-tetris-rom
   DB $00,$3C,$66,$66,$66,$66,$3C,$00 ; 0
   DB $00,$18,$38,$18,$18,$18,$3C,$00 ; 1
   DB $00,$3C,$4E,$0E,$3C,$70,$7E,$00
@@ -109,8 +120,11 @@ Tiles:
   DB $00,$46,$2C,$18,$38,$64,$42,$00  ; X
   DB $00,$66,$66,$3C,$18,$18,$18,$00  ; Y
   DB $00,$7E,$0E,$1C,$38,$70,$7E,$00  ; Z
-  DB $00,$00,$00,$18,$18,$00,$00,$00  ; .
+  DB $00,$00,$00,$18,$18,$00,$00,$00  ; . (for goal squares)
   DB $00,$00,$00,$3C,$3C,$00,$00,$00  ; -
+  DB $00,$00,$00,$00,$00,$18,$18,$30  ; ,
+  DB $18,$18,$18,$18,$18,$00,$18,$00  ; !
+  DB $00,$00,$00,$00,$00,$60,$60,$00  ; ~ (the actual ".")
 TilesEnd:
 
 SECTION "TileMap", ROM0

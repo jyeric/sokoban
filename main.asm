@@ -28,8 +28,50 @@ EntryPoint:
   ld [rLCDC], a
 
 MainLoop:
-  call WaitVBlank
+  call StateMachine
   jr MainLoop
+
+SECTION "StateMachine", ROM0
+StateMachine:         ; From labnotes.html#jump-table-application-state-machines
+  ld a, [state]       ; Load the current game state
+  ld hl, StateTable   ; Load the address of the jump table
+  ld e, a             ; Use state as the index
+  ld d, 0
+  add hl, de          ; Add the index to HL
+  add hl, de          ; Multiply index by 2 (2 bytes per address)
+  ld a, [hl+]         ; Load low byte of the address
+  ld h, [hl]          ; Load high byte of the address
+  ld l, a             ; Complete the full address
+  jp hl               ; Jump to the state's handler
+
+StateTable:
+  DW Splash
+  DW LevelLoad
+  DW LevelPlay
+  DW LevelWin
+  DW GameWin
+
+Splash:
+  call readKeys
+  ld a, PADF_START
+  and b
+  jr z, Splash
+  ld a, 1
+  ld [state], a
+  ret
+
+LevelLoad:
+  ret
+
+LevelPlay:
+  ret
+
+LevelWin:
+  ret
+
+GameWin:
+  ret
+
 
 SECTION "Functions", ROM0
 LoadBG:

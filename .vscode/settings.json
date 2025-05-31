@@ -2,5 +2,6 @@
     "rgbdsz80.formatting.capitalization": {
         "language": "lower",
         "language.keyword": "upper",
-    }
+    },
+    "github.copilot.chat.localeOverride": "en"
 }
