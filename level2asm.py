@@ -1,7 +1,24 @@
 #!/usr/bin/env python3
 
 def is_level_data(line: str) -> bool:
+    """Check if line contains level data (not labels, comments, or empty lines)."""
     return not (':' in line or ';' in line or line.strip() == '')
+
+
+def process_level_block(level_lines: list) -> None:
+    """Process and print a block of level lines."""
+    if not level_lines:
+        return
+    
+    # Calculate max length only from actual level data lines
+    max_length = max((len(s) for s in level_lines if is_level_data(s)), default=0)
+    
+    for line in level_lines:
+        if is_level_data(line):
+            formatted_line = f'{line:<{max_length}}'
+            print(f'  DB "{formatted_line:^20}"')
+        else:
+            print(line)
 
 
 with open("levels.txt", "r") as f:
@@ -14,20 +31,18 @@ with open("data.nolevels.asm", "r") as f:
     print(f.read())
 print('SECTION "Levels", ROM0')
 
-l = []
+current_block = []
 labels = []
 for line in lines:
     if line.endswith(':'):
+        # Process previous block before starting new one
+        process_level_block(current_block)
         labels.append(line[:-1])
-        length = max((len(s) for s in l if is_level_data(s)), default=0)
-        while l:
-            print(f'  DB "{l.pop(0):<{length}}\\n"' if is_level_data(l[0]) else l.pop(0))
-    l.append(line)
+        current_block = []
+    current_block.append(line)
 
-if len(l) > 0:
-    length = max((len(s) for s in l if is_level_data(s)), default=0)
-    while l:
-        print(f'  DB "{l.pop(0):<{length}}\\n"' if is_level_data(l[0]) else l.pop(0))
+# Process final block
+process_level_block(current_block)
 
 print('LevelEnd:\n\nLevelTable:')
 for label in labels:

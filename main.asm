@@ -11,8 +11,8 @@ SECTION "Header", ROM0[$100]
 
 EntryPoint:
   call WaitVBlank
-  ld a, 0
-  ld [rLCDC], a
+  xor a ; a = 0
+  ld [rLCDC], a ; turn off LCD
 
   ld a, %11111100 ; b&w palette
   ld [rOBP0], a
@@ -56,13 +56,16 @@ Splash:
   ld a, PADF_START
   and b
   jr z, Splash
-  ld a, 1
+  ld a, LEVEL_LOAD_STATE
   ld [state], a
   xor a ; a = 0
   ld [level], a
   ret
 
 LevelLoad:
+  call WaitVBlank
+  xor a ; a = 0
+  ld [rLCDC], a ; turn off LCD
   ret
 
 LevelPlay:
@@ -145,6 +148,7 @@ ResetVariables:
   call ResetBG
   xor a ; a = 0
   ld [state], a
+  ld [level], a
   ld [previous], a
   ld [current], a
   ret
