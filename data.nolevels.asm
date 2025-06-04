@@ -44,6 +44,7 @@ CHARMAP "-", 41
 CHARMAP ",", 42
 CHARMAP "!", 43
 CHARMAP "~", 44
+CHARMAP "\n", $FF
 
 ; Constants
 DEF SPLASH_STATE      EQU 0
