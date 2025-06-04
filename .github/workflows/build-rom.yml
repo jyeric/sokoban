@@ -28,4 +28,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gameboy-rom
-          path: build/game.gb
+          path: build/*.gb

@@ -15,14 +15,20 @@ with open("data.nolevels.asm", "r") as f:
 print('SECTION "Levels", ROM0')
 
 l = []
+labels = []
 for line in lines:
-    if line.endswith(':') and len(l) > 0:
-        length = max(len(s) for s in l)
+    if line.endswith(':'):
+        labels.append(line[:-1])
+        length = max((len(s) for s in l if is_level_data(s)), default=0)
         while l:
             print(f'  DB "{l.pop(0):<{length}}\\n"' if is_level_data(l[0]) else l.pop(0))
     l.append(line)
 
 if len(l) > 0:
-    length = max(len(s) for s in l)
+    length = max((len(s) for s in l if is_level_data(s)), default=0)
     while l:
         print(f'  DB "{l.pop(0):<{length}}\\n"' if is_level_data(l[0]) else l.pop(0))
+
+print('LevelEnd:\n\nLevelTable:')
+for label in labels:
+    print(f'  DW {label}')
