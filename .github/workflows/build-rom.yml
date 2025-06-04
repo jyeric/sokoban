@@ -22,10 +22,7 @@ jobs:
 
       - name: Build ROM
         run: |
-          mkdir -p build
-          rgbasm -o build/main.o main.asm
-          rgblink -o build/game.gb build/main.o
-          rgbfix -v -p 0xFF build/game.gb
+          make
 
       - name: Upload ROM artifact
         uses: actions/upload-artifact@v4
