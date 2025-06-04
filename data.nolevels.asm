@@ -43,7 +43,9 @@ CHARMAP ".", 40
 CHARMAP "-", 41
 CHARMAP ",", 42
 CHARMAP "!", 43
-CHARMAP "~", 44
+CHARMAP "~", 44 ; (actual ".")
+CHARMAP "*", 45
+CHARMAP "+", 46
 CHARMAP "\n", $FF
 
 ; Constants
@@ -84,7 +86,7 @@ Tiles:
   DB %00111100
   DB %01000010
   DB %01100011
-; ID 4-41: characters, from labnotes.html#example-from-tetris-rom
+; ID 4-44: characters, from labnotes.html#example-from-tetris-rom
   DB $00,$3C,$66,$66,$66,$66,$3C,$00 ; 0
   DB $00,$18,$38,$18,$18,$18,$3C,$00 ; 1
   DB $00,$3C,$4E,$0E,$3C,$70,$7E,$00
@@ -126,6 +128,16 @@ Tiles:
   DB $00,$00,$00,$00,$00,$18,$18,$30  ; ,
   DB $18,$18,$18,$18,$18,$00,$18,$00  ; !
   DB $00,$00,$00,$00,$00,$60,$60,$00  ; ~ (the actual ".")
+  ; ID 45: box on goal
+  DB %11111111
+  DB %11000011
+  DB %10111101
+  DB %10100101
+  DB %10100101
+  DB %10111101
+  DB %11000011
+  DB %11111111
+  ; ID 46: man on goal
 TilesEnd:
 
 SECTION "TileMap", ROM0

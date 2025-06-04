@@ -58,6 +58,8 @@ Splash:
   jr z, Splash
   ld a, 1
   ld [state], a
+  xor a ; a = 0
+  ld [level], a
   ret
 
 LevelLoad:
@@ -213,6 +215,7 @@ readKeys:
 
 SECTION "Variables", WRAM0
 state:     DS 1
+level:     DS 1
 ShadowOAM: DS 160
 previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys

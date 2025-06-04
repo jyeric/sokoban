@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 def is_level_data(line: str) -> bool:
-    return not (line.endswith(':') or line.strip() == '')
+    return not (':' in line or ';' in line or line.strip() == '')
 
 
 with open("levels.txt", "r") as f:
@@ -13,7 +13,7 @@ print('SECTION "Levels", ROM0')
 
 l = []
 for line in lines:
-    if line.startswith(';') and len(l) > 0:
+    if line.endswith(':') and len(l) > 0:
         length = max(len(s) for s in l)
         while l:
             print(f'  DB "{l.pop(0):<{length}}\\n"' if is_level_data(l[0]) else l.pop(0))
