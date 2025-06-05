@@ -49,14 +49,16 @@ for line in lines:
         this_level_box = 0
         cnt = 0
         labels = []
+        x_pos += upper_space
+        y_pos += left_space
+        man.append(y_pos * 32 + x_pos)
     elif not line.endswith(":"):
         for x in range(len(line)):
             if line[x] == '.':
                 this_level_box += 1
             elif line[x] == '@':
-                x_pos = x + 1
-                y_pos = cnt + 1
-                man.append(dict(x=x_pos, y=y_pos))
+                x_pos = x
+                y_pos = cnt
         labels.append(line)
         max_line = max(max_line, len(line))
         cnt = cnt + 1
@@ -80,12 +82,15 @@ boxes.append(this_level_box)
 this_level_box = 0
 cnt = 0
 labels = []
+x_pos += upper_space
+y_pos += left_space
+man.append(y_pos * 32 + x_pos)
 
 print('LevelEnd:\n\nLevelTable:')
 for i in range(1, level):
     print(f'  DW Lv{i}')
 
 print('\nLevelInfo:')
-print("; record: x_pos, y_pos, box_num")
+print("; record: pos, \\n box_num")
 for i in range(0, level - 1):
-    print(f'  DB {str(man[i]["x"])}, {str(man[i]["y"])}, {str(boxes[i])}')
+    print(f'  DW {str(man[i])}\n  DB {str(boxes[i])}') 
