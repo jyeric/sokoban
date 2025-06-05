@@ -54,6 +54,13 @@ DEF LEVEL_LOAD_STATE  EQU 1
 DEF LEVEL_PLAY_STATE  EQU 2
 DEF LEVEL_WIN_STATE   EQU 3
 DEF GAME_WIN_STATE    EQU 4
+DEF WALL              EQU "#"
+DEF BOX               EQU "$"
+DEF MAN               EQU "@"
+DEF SPACE             EQU " "
+DEF GOAL              EQU "."
+DEF BOX_ON_GOAL       EQU "*"
+DEF MAN_ON_GOAL       EQU "+"
 
 SECTION "TileData", ROM0
 Tiles:
@@ -163,6 +170,45 @@ SplashScreen:
   DB "      #.$  $.#      "
   DB "      #.$@ $.#      "
   DB "      ########      "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+
+LevelWinScreen:
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "  LEVEL  COMPLETE!  "
+  DB "                    "
+  DB "                    "
+  DB "    PRESS  START    "
+  DB "   FOR NEXT LEVEL   "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+
+GameWinScreen:
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "   SOKOBAN DELUXE   "
+  DB "                    "
+  DB "      YOU WIN!      "
+  DB "                    "
+  DB "         @*         "
+  DB "                    "
+  DB "                    "
   DB "                    "
   DB "                    "
   DB "                    "

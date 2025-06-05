@@ -20,8 +20,14 @@ EntryPoint:
   call CopyTilesToVRAM
   call ResetVariables
   ; call ResetBG
+  ; Load the Splash Screen
   ld de, SplashScreen
   ld hl, _SCRN0
+  call LoadBG
+
+  ; Load Level Complete Screen
+  ld de, LevelWinScreen
+  ld hl, _SCRN1
   call LoadBG
 
   ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
@@ -63,18 +69,192 @@ Splash:
   ret
 
 LevelLoad:
+  ; Select level and load it
+  ld a, [level]
+  ld hl, LevelTable
+  ld e, a
+  ld d, 0
+  add hl, de
+  add hl, de
+  ld e, [hl]
+  inc hl
+  ld d, [hl]
+  ; Write into BG
   call WaitVBlank
-  xor a ; a = 0
-  ld [rLCDC], a ; turn off LCD
+  ld a, 0
+  ld [rLCDC], a
+  ld hl, _SCRN0
+  call LoadBG         ; Load the background map data
+  ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
+  ld [rLCDC], a
+
+  ; Write into Variables
+  ld a, [level]
+  ld hl, LevelInfo
+  add a
+  add a
+  ld e, a
+  ld d, [hl]
+  ld hl, de
+  ld a, [hl+]         ; Load the man's position
+  ld [man_pos], a
+  ld a, [hl+]        ; Load the man's y position
+  ld [man_pos + 1], a
+  ld a, [hl+]         ; Load the level's box number
+  ld [box_num], a
+
+  ; Change state
+  ld a, LEVEL_PLAY_STATE
+  ld [state], a      ; Set state to LevelPlay
   ret
 
 LevelPlay:
+  call readKeys
+  ; bit 7: down
+  ; bit 6: up
+  ; bit 5: left
+  ; bit 4: right
+  ; bit 3: start
+  ; bit 2: select
+  ; bit 1: B button
+  ; bit 0: A button
+  ld hl, current
+  ld a, [hl]
+  ; Continue readkey if no key has touched
+  cp 0
+  jr z, LevelPlay
+  ; Get the positon of the player
+  ; hl The BG0 place
+  ; de man's additional pos
+  ld hl, _SCRN0
+  ld a, [man_pos]
+  ld d, a
+  ld a, [man_pos + 1]
+  ld e, a
+  add hl, de
+  
+  ;Get the object where the person will move
+  bit 7, a
+  jr z, .move_down
+  bit 6, a
+  jr z, .move_up
+  bit 5, a
+  jr z, .move_left
+  bit 4, a
+  jr z, .move_right
+;Output:
+.move_down:
+  ld de, 32
+  jr .move
+.move_up:
+  ld de, -32
+  jr .move
+.move_left:
+  ld de, -1
+  jr .move
+.move_right:
+  ld de, 1
+  jr .move
+.move:
+  ;FIXME: BG没有等vblank
+  ld b, h
+  ld c, l ; bc = hl
+  add hl, de
+  ld a, [hl]
+  ; Will not move the box
+  cp a, SPACE
+  jr z, .movespace ; move to space
+  cp a, GOAL
+  jr z, .movegoal  ; FIXME: BUG: 忘记移动到goal的可能性了
+  cp a, WALL ; cannot move
+  jp z, .win
+  ; The only possbility now is the box or BOX_ON_GOAL
+  add hl, de
+  ld b, a
+  ld a, [hl]
+  cp a, WALL
+  jp z, .win ; We cannot move the box
+  cp a, BOX
+  jp z. .win ; We cannot move the box
+  cp a, BOX_ON_GOAL
+  jp z, .win ; We cannot move the box
+.movebox:
+  cp a, GOAL
+  ld a, BOX ; will be written as goal_on_box by calling
+  ld [hl], a ; Move the box
+  call z, .addcnt
+  
+  ;Processing with the box next to it
+  sub hl, de
+  ld a, [hl]
+  cp a, BOX_ON_GOAL
+  ld a, SPACE ; will be written as goal by calling
+  ld [hl], a
+  call z, .deccnt
+  ;Processing the man
+  sub hl, de
+  ld a, [hl]
+  cp a, MAN_ON_GOAL
+  ld [hl], a
+  call z, .removemanfromgoal
+
+
+.addcnt:
+  ld a, BOX_ON_GOAL
+  ld [hl], a
+  ld a, [ongoal_num]
+  inc a
+  ld [ongoal_num], a
   ret
+.deccnt:
+  ld a, GOAL
+  ld [hl], a
+  ld a, [ongoal_num]
+  dec a
+  ld [ongoal_num], a
+  ret
+.removemanfromgoal:
+
+  ret
+.movespace:
+
+.movegoal
+
+.win:
+
 
 LevelWin:
+  call WaitVBlank
+  ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9C00 ; Switch to _SCRN1
+  ld [rLCDC], a
+.loop:
+  call readKeys
+  ld a, PADF_START
+  and b
+  jr z, .loop
+  ld a, LEVEL_LOAD_STATE
+  ld [state], a
+  ld hl, level
+  inc [hl]                ; FIXME: Check if game is finished
   ret
 
 GameWin:
+  call WaitVBlank
+  xor a
+  ld [rLCDC], a         ; turn off the screen
+  ld de, GameWinScreen
+  ld hl, _SCRN1
+  call LoadBG
+.loop:
+  jr .loop
+  ; call readKeys
+  ; ld a, PADF_START
+  ; and b
+  ; jr z, .loop
+  ; ld a, LEVEL_LOAD_STATE
+  ; ld [state], a
+  ; ld hl, level
+  ; inc [hl]
   ret
 
 
@@ -151,6 +331,10 @@ ResetVariables:
   ld [level], a
   ld [previous], a
   ld [current], a
+  ld [man_pos], a
+  ld [man_pos + 1], a
+  ld [box_num], a
+  ld [level], a
   ret
 
 CopyTilesToVRAM:
@@ -223,3 +407,6 @@ level:     DS 1
 ShadowOAM: DS 160
 previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
+man_pos:   DS 2
+box_num:   DS 1
+ongoal_num:DS 1
