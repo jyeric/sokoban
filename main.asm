@@ -63,6 +63,25 @@ Splash:
   ret
 
 LevelLoad:
+  ld a, [level]
+  ld hl, LevelTable
+  ld e, a
+  ld d, 0
+  add hl, de
+  add hl, de
+  ld e, [hl]
+  inc hl
+  ld d, [hl]         ; Load the level data address
+  call WaitVBlank
+  ld a, 0
+  ld [rLCDC], a
+  ld hl, _SCRN0
+  call LoadBG         ; Load the background map data
+  ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
+  ld [rLCDC], a
+
+  ld a, 2
+  ld [state], a      ; Set state to LevelPlay
   ret
 
 LevelPlay:
