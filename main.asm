@@ -20,8 +20,14 @@ EntryPoint:
   call CopyTilesToVRAM
   call ResetVariables
   ; call ResetBG
+  ; Load the Splash Screen
   ld de, SplashScreen
   ld hl, _SCRN0
+  call LoadBG
+
+  ; Load Level Complete Screen
+  ld de, LevelWinScreen
+  ld hl, _SCRN1
   call LoadBG
 
   ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
@@ -56,7 +62,7 @@ Splash:
   ld a, PADF_START
   and b
   jr z, Splash
-  ld a, 1
+  ld a, LEVEL_LOAD_STATE
   ld [state], a
   xor a ; a = 0
   ld [level], a
@@ -103,9 +109,37 @@ LevelPlay:
   ret
 
 LevelWin:
+  call WaitVBlank
+  ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9C00 ; Switch to _SCRN1
+  ld [rLCDC], a
+.loop:
+  call readKeys
+  ld a, PADF_START
+  and b
+  jr z, .loop
+  ld a, LEVEL_LOAD_STATE
+  ld [state], a
+  ld hl, level
+  inc [hl]                ; FIXME: Check if game is finished
   ret
 
 GameWin:
+  call WaitVBlank
+  xor a
+  ld [rLCDC], a         ; turn off the screen
+  ld de, GameWinScreen
+  ld hl, _SCRN1
+  call LoadBG
+.loop:
+  jr .loop
+  ; call readKeys
+  ; ld a, PADF_START
+  ; and b
+  ; jr z, .loop
+  ; ld a, LEVEL_LOAD_STATE
+  ; ld [state], a
+  ; ld hl, level
+  ; inc [hl]
   ret
 
 
@@ -259,4 +293,4 @@ previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
 x_pos:    DS 1
 y_pos:    DS 1
-box_num：  DS 1
+box_num:  DS 1
