@@ -63,6 +63,7 @@ Splash:
   ret
 
 LevelLoad:
+  ; Select level and load it
   ld a, [level]
   ld hl, LevelTable
   ld e, a
@@ -71,7 +72,8 @@ LevelLoad:
   add hl, de
   ld e, [hl]
   inc hl
-  ld d, [hl]         ; Load the level data address
+  ld d, [hl]
+  ; Write into BG
   call WaitVBlank
   ld a, 0
   ld [rLCDC], a
@@ -79,6 +81,9 @@ LevelLoad:
   call LoadBG         ; Load the background map data
   ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
   ld [rLCDC], a
+
+  ; Write into Variables
+  
 
   ld a, 2
   ld [state], a      ; Set state to LevelPlay
@@ -176,6 +181,10 @@ ResetVariables:
   ld [state], a
   ld [previous], a
   ld [current], a
+  ld [x_pos], a
+  ld [y_pos], a
+  ld [box_num], a
+  ld [level], a
   ret
 
 CopyTilesToVRAM:
@@ -248,5 +257,6 @@ level:     DS 1
 ShadowOAM: DS 160
 previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
-x_size:    DS 1
-y_size:    DS 1
+x_pos:    DS 1
+y_pos:    DS 1
+box_num：  DS 1
