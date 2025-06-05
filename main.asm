@@ -89,9 +89,22 @@ LevelLoad:
   ld [rLCDC], a
 
   ; Write into Variables
-  
+  ld a, [level]
+  ld hl, [LevelInfo]
+  add a
+  add a
+  ld e, a
+  ld d, [hl]
+  ld hl, de
+  ld a, [hl+]         ; Load the man's position
+  ld [man_pos], a
+  ld a, [hl+]        ; Load the man's y position
+  ld [man_pos + 1], a
+  ld a, [hl+]         ; Load the level's box number
+  ld [box_num], a
 
-  ld a, 2
+  ; Change state
+  ld a, LEVEL_PLAY_STATE
   ld [state], a      ; Set state to LevelPlay
   ret
 
@@ -105,8 +118,65 @@ LevelPlay:
   ; bit 2: select
   ; bit 1: B button
   ; bit 0: A button
+  ld hl, current
+  ld a, [hl]
+  ; Continue readkey if no key has touched
+  cp 0
+  jr z, LevelPlay
+  ; Get the positon of the player
+  ; hl The BG0 place
+  ; de man's additional pos
+  ld hl, _SCRN0
+  ld a, [man_pos]
+  ld d, a
+  ld a, [man_pos + 1]
+  ld e, a
+  add hl, de
   
-  ret
+  ;Get the object where the person will move
+  bit 7, a
+  jr z, .move_down
+  bit 6, a
+  jr z, .move_up
+  bit 5, a
+  jr z, .move_left
+  bit 4, a
+  jr z, .move_right
+;Output:
+.move_down:
+  ld de, 32
+  jr .move
+.move_up:
+  ld de, -32
+  jr .move
+.move_left:
+  ld de, -1
+  jr .move
+.move_right:
+  ld de, 1
+  jr .move
+.move:
+  ld b, h
+  ld c, l ; bc = hl
+  add hl, de
+  ld a, [hl]
+  cp a, SPACE
+  jr z, .movespace
+  cp a, WALL
+  jp z, .win
+  ; The only possbility now is the box
+  add hl, de
+  ld b, a
+  ld a, [hl]
+  cp a, SPACE
+  jp nz, .win
+.movebox:
+  cp a, dot
+  
+.movespace:
+
+.win:
+
 
 LevelWin:
   call WaitVBlank
@@ -215,8 +285,8 @@ ResetVariables:
   ld [state], a
   ld [previous], a
   ld [current], a
-  ld [x_pos], a
-  ld [y_pos], a
+  ld [man_pos], a
+  ld [man_pos + 1], a
   ld [box_num], a
   ld [level], a
   ret
@@ -291,6 +361,6 @@ level:     DS 1
 ShadowOAM: DS 160
 previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
-x_pos:    DS 1
-y_pos:    DS 1
-box_num:  DS 1
+man_pos:   DS 2
+box_num:   DS 1
+win_num:   DS 1
