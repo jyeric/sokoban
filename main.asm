@@ -94,8 +94,8 @@ LevelLoad:
   add a
   add a
   ld e, a
-  ld d, [hl]
-  ld hl, de
+  ld d, 0
+  add hl, de
   ld a, [hl+]         ; Load the man's position
   ld [man_pos], a
   ld a, [hl+]        ; Load the man's y position
@@ -118,30 +118,29 @@ LevelPlay:
   ; bit 2: select
   ; bit 1: B button
   ; bit 0: A button
-  ld hl, current
-  ld a, [hl]
+  ld a, [current]
   ; Continue readkey if no key has touched
   cp 0
+  ld b, a
   jr z, LevelPlay
   ; Get the positon of the player
   ; hl The BG0 place
   ; de man's additional pos
-  ld hl, _SCRN0
   ld a, [man_pos]
-  ld d, a
+  ld l, a
   ld a, [man_pos + 1]
-  ld e, a
-  add hl, de
+  ld h, a
   
+  ld a, b
   ;Get the object where the person will move
   bit 7, a
-  jr z, .move_down
+  jr nz, .move_down
   bit 6, a
-  jr z, .move_up
+  jr nz, .move_up
   bit 5, a
-  jr z, .move_left
+  jr nz, .move_left
   bit 4, a
-  jr z, .move_right
+  jr nz, .move_right
 ;Output:
 .move_down:
   ld de, 32
@@ -161,13 +160,21 @@ LevelPlay:
   ld c, l ; bc = hl
   add hl, de
   ld a, [hl]
+  ; Cannot move
+  cp a, WALL ; cannot move
+  jp z, .win
+  ; Record person's position
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
   ; Will not move the box
+  ld a, [hl]
   cp a, SPACE
   jr z, .movespace ; move to space
   cp a, GOAL
   jr z, .movegoal  ; FIXME: BUG: 忘记移动到goal的可能性了
-  cp a, WALL ; cannot move
-  jp z, .win
+  
   ; The only possbility now is the box or BOX_ON_GOAL
   add hl, de
   ld b, a
@@ -175,7 +182,7 @@ LevelPlay:
   cp a, WALL
   jp z, .win ; We cannot move the box
   cp a, BOX
-  jp z. .win ; We cannot move the box
+  jp z, .win ; We cannot move the box
   cp a, BOX_ON_GOAL
   jp z, .win ; We cannot move the box
 .movebox:
@@ -184,20 +191,29 @@ LevelPlay:
   ld [hl], a ; Move the box
   call z, .addcnt
   
-  ;Processing with the box next to it
-  sub hl, de
+  ;Processing with the box next to next to it
+  ; Now de = -de
+  ld a, d
+  cpl
+  ld d, a
+  ld a, e
+  cpl
+  ld e, a
+  inc de
+  add hl, de
   ld a, [hl]
   cp a, BOX_ON_GOAL
-  ld a, SPACE ; will be written as goal by calling
+  ld a, MAN ; will be written as goal by calling
   ld [hl], a
   call z, .deccnt
   ;Processing the man
-  sub hl, de
+  add hl, de
   ld a, [hl]
   cp a, MAN_ON_GOAL
+  ld a, SPACE
   ld [hl], a
-  call z, .removemanfromgoal
-
+  jr z, .removemanfromgoal
+  jr .win
 
 .addcnt:
   ld a, BOX_ON_GOAL
@@ -214,13 +230,28 @@ LevelPlay:
   ld [ongoal_num], a
   ret
 .removemanfromgoal:
-
-  ret
+  ld a, GOAL
+  ld [hl], a
+  jr .win ; the last function; don't need to call/ret
 .movespace:
-
+  ld a, SPACE
+  ld [hl], a
+  jr .win
 .movegoal
-
+  ld a, SPACE
+  ld [hl], a
+  jr .win
 .win:
+  ld a, [box_num]
+  ld b, a
+  ld a, [ongoal_num]
+  cp b
+  ret nz
+
+  ; Change state if win
+  ld a, LEVEL_WIN_STATE
+  ld [state], a      ; Set state to LevelWin
+  ret
 
 
 LevelWin:
