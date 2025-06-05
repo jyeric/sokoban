@@ -25,11 +25,14 @@ right_space = 0
 line_size = 20
 flag = False
 level = 1
+man = []
+boxes = []
+this_level_box = 0
 for line in lines: 
     if len(line) > 0 and line[0] == ';':
         print(line)
         continue
-    elif line.endswith(":") and flag:
+    elif line == "" and flag:
         print("Lv" + str(level) + ":")
         level += 1
         upper_space = 5 + (8 - cnt) // 2
@@ -40,15 +43,45 @@ for line in lines:
             right_space = line_size - left_space - len(label)
             print('  DB "' + ' ' * left_space + label + " " * right_space + '"')
         print('  DB "                    "\n' * lower_space)
+        boxes.append(this_level_box)
+        this_level_box = 0
         cnt = 0
         labels = []
     elif not line.endswith(":"):
+        for x in range(len(line)):
+            if line[x] == '.':
+                this_level_box += 1
+            elif line[x] == '@':
+                x_pos = x + 1
+                y_pos = cnt + 1
+                man.append(dict(x=x_pos, y=y_pos))
         labels.append(line)
         max_line = max(max_line, len(line))
         cnt = cnt + 1
     if len(line) > 0:
         flag = True
 
+# Print level 11
+print("Lv" + str(level) + ":")
+level += 1
+upper_space = 5 + (8 - cnt) // 2
+lower_space = 18 - upper_space - cnt
+print('  DB "                    "\n' * (upper_space - 1) + '  DB "                    "')
+for label in labels:
+    left_space = (line_size - len(label)) // 2
+    right_space = line_size - left_space - len(label)
+    print('  DB "' + ' ' * left_space + label + " " * right_space + '"')
+print('  DB "                    "\n' * lower_space)
+boxes.append(this_level_box)
+this_level_box = 0
+cnt = 0
+labels = []
+
 print('LevelEnd:\n\nLevelTable:')
 for i in range(1, level):
     print(f'  DW Lv{i}')
+
+print('\nLevelInfo:')
+print("; record: x_pos, y_pos, box_num")
+for i in range(0, level - 1):
+    print(f'  DB {str(man[i]["x"])}, {str(man[i]["y"])}, {str(boxes[i])}')
