@@ -90,7 +90,7 @@ LevelLoad:
 
   ; Write into Variables
   ld a, [level]
-  ld hl, [LevelInfo]
+  ld hl, LevelInfo
   add a
   add a
   ld e, a
@@ -156,24 +156,69 @@ LevelPlay:
   ld de, 1
   jr .move
 .move:
+  ;FIXME: BG没有等vblank
   ld b, h
   ld c, l ; bc = hl
   add hl, de
   ld a, [hl]
+  ; Will not move the box
   cp a, SPACE
-  jr z, .movespace
-  cp a, WALL
+  jr z, .movespace ; move to space
+  cp a, GOAL
+  jr z, .movegoal  ; FIXME: BUG: 忘记移动到goal的可能性了
+  cp a, WALL ; cannot move
   jp z, .win
-  ; The only possbility now is the box
+  ; The only possbility now is the box or BOX_ON_GOAL
   add hl, de
   ld b, a
   ld a, [hl]
-  cp a, SPACE
-  jp nz, .win
+  cp a, WALL
+  jp z, .win ; We cannot move the box
+  cp a, BOX
+  jp z. .win ; We cannot move the box
+  cp a, BOX_ON_GOAL
+  jp z, .win ; We cannot move the box
 .movebox:
-  cp a, dot
+  cp a, GOAL
+  ld a, BOX ; will be written as goal_on_box by calling
+  ld [hl], a ; Move the box
+  call z, .addcnt
   
+  ;Processing with the box next to it
+  sub hl, de
+  ld a, [hl]
+  cp a, BOX_ON_GOAL
+  ld a, SPACE ; will be written as goal by calling
+  ld [hl], a
+  call z, .deccnt
+  ;Processing the man
+  sub hl, de
+  ld a, [hl]
+  cp a, MAN_ON_GOAL
+  ld [hl], a
+  call z, .removemanfromgoal
+
+
+.addcnt:
+  ld a, BOX_ON_GOAL
+  ld [hl], a
+  ld a, [ongoal_num]
+  inc a
+  ld [ongoal_num], a
+  ret
+.deccnt:
+  ld a, GOAL
+  ld [hl], a
+  ld a, [ongoal_num]
+  dec a
+  ld [ongoal_num], a
+  ret
+.removemanfromgoal:
+
+  ret
 .movespace:
+
+.movegoal
 
 .win:
 
@@ -363,4 +408,4 @@ previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
 man_pos:   DS 2
 box_num:   DS 1
-win_num:   DS 1
+ongoal_num:DS 1
