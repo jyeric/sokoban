@@ -5,10 +5,10 @@ def is_level_data(line: str) -> bool:
     return not (':' in line or ';' in line or line.strip() == '')
 
 
-def process_level_block(level_lines: list) -> None:
+def process_level_block(level_lines: list) -> bool:
     """Process and print a block of level lines."""
     if not level_lines:
-        return
+        return False
     
     # Calculate max length only from actual level data lines
     max_length = max((len(s) for s in level_lines if is_level_data(s)), default=0)
@@ -19,6 +19,8 @@ def process_level_block(level_lines: list) -> None:
             print(f'  DB "{formatted_line:^20}"')
         else:
             print(line)
+
+    return True
 
 
 with open("levels.txt", "r") as f:
@@ -33,17 +35,19 @@ print('SECTION "Levels", ROM0')
 
 current_block = []
 labels = []
+level_num = 0
 for line in lines:
     if line.endswith(':'):
         # Process previous block before starting new one
-        process_level_block(current_block)
+        if process_level_block(current_block):
+            level_num += 1
+            current_block = []
         labels.append(line[:-1])
-        current_block = []
     current_block.append(line)
 
 # Process final block
 process_level_block(current_block)
 
-print('LevelEnd:\n\nLevelTable:')
+print(f'LevelEnd:\n\nDEF LEVEL_NUM EQU {level_num}\n\nLevelTable:')
 for label in labels:
     print(f'  DW {label}')
