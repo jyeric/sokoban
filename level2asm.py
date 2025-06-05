@@ -16,19 +16,39 @@ print('SECTION "Levels", ROM0')
 
 l = []
 labels = []
-for line in lines:
-    if line.endswith(':'):
-        labels.append(line[:-1])
-        length = max((len(s) for s in l if is_level_data(s)), default=0)
-        while l:
-            print(f'  DB "{l.pop(0):<{length}}\\n"' if is_level_data(l[0]) else l.pop(0))
-    l.append(line)
-
-if len(l) > 0:
-    length = max((len(s) for s in l if is_level_data(s)), default=0)
-    while l:
-        print(f'  DB "{l.pop(0):<{length}}\\n"' if is_level_data(l[0]) else l.pop(0))
+cnt = 0
+max_line = 0
+upper_space = 5
+lower_space = 0
+left_space = 0
+right_space = 0
+line_size = 20
+flag = False
+level = 1
+for line in lines: 
+    if len(line) > 0 and line[0] == ';':
+        print(line)
+        continue
+    elif line.endswith(":") and flag:
+        print("Lv" + str(level) + ":")
+        level += 1
+        upper_space = 5 + (8 - cnt) // 2
+        lower_space = 18 - upper_space - cnt
+        print('  DB "                    "\n' * (upper_space - 1) + '  DB "                    "')
+        for label in labels:
+            left_space = (line_size - len(label)) // 2
+            right_space = line_size - left_space - len(label)
+            print('  DB "' + ' ' * left_space + label + " " * right_space + '"')
+        print('  DB "                    "\n' * lower_space)
+        cnt = 0
+        labels = []
+    elif not line.endswith(":"):
+        labels.append(line)
+        max_line = max(max_line, len(line))
+        cnt = cnt + 1
+    if len(line) > 0:
+        flag = True
 
 print('LevelEnd:\n\nLevelTable:')
-for label in labels:
-    print(f'  DW {label}')
+for i in range(1, level):
+    print(f'  DW Lv{i}')

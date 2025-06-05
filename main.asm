@@ -66,6 +66,16 @@ LevelLoad:
   ret
 
 LevelPlay:
+  call readKeys
+  ; bit 7: down
+  ; bit 6: up
+  ; bit 5: left
+  ; bit 4: right
+  ; bit 3: start
+  ; bit 2: select
+  ; bit 1: B button
+  ; bit 0: A button
+  
   ret
 
 LevelWin:
@@ -219,3 +229,5 @@ level:     DS 1
 ShadowOAM: DS 160
 previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
+x_size:    DS 1
+y_size:    DS 1
