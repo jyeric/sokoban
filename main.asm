@@ -156,6 +156,7 @@ LevelPlay:
   jr .move
 .move:
   ;FIXME: BG没有等vblank
+  call WaitVBlank
   ld b, h
   ld c, l ; bc = hl
   add hl, de
@@ -163,11 +164,6 @@ LevelPlay:
   ; Cannot move
   cp a, WALL ; cannot move
   jp z, .win
-  ; Record person's position
-  ld a, l
-  ld [man_pos], a
-  ld a, h
-  ld [man_pos + 1], a
   ; Will not move the box
   ld a, [hl]
   cp a, SPACE
@@ -186,6 +182,8 @@ LevelPlay:
   cp a, BOX_ON_GOAL
   jp z, .win ; We cannot move the box
 .movebox:
+  call WaitVBlank
+  ld a, [hl]
   cp a, GOAL
   ld a, BOX ; will be written as goal_on_box by calling
   ld [hl], a ; Move the box
@@ -201,6 +199,14 @@ LevelPlay:
   ld e, a
   inc de
   add hl, de
+
+  ; Record person's position
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+
+  call WaitVBlank
   ld a, [hl]
   cp a, BOX_ON_GOAL
   ld a, MAN ; will be written as goal by calling
@@ -234,13 +240,42 @@ LevelPlay:
   ld [hl], a
   jr .win ; the last function; don't need to call/ret
 .movespace:
-  ld a, SPACE
+  ; Record person's position
+  call WaitVBlank
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+
+  ld a, MAN
   ld [hl], a
-  jr .win
+
+  ld a, [bc]
+  cp MAN
+  jr z, .mantospace
+  jr .mantogoal
 .movegoal
-  ld a, SPACE
+  ; Record person's position
+  call WaitVBlank
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+
+  ld a, MAN_ON_GOAL
   ld [hl], a
-  jr .win
+  
+  ld a, [bc]
+  cp MAN
+  jr z, .mantospace
+  jr .mantogoal
+.mantogoal:
+  ld a, GOAL
+  ld [bc], a
+  jp .win
+.mantospace:
+  ld a, SPACE
+  ld [bc], a
 .win:
   ld a, [box_num]
   ld b, a
@@ -364,6 +399,7 @@ ResetVariables:
   ld [man_pos], a
   ld [man_pos + 1], a
   ld [box_num], a
+  ld [ongoal_num], a
   ld [level], a
   ret
 
