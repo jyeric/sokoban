@@ -99,7 +99,32 @@ LevelLoad:
   pop bc
   ld h, $98         ; h = $98 since _SCRN0 = $9800
   ld l, c           ; hl += 0c <=> l = c as no overflow
-  call LoadBG       ; Load the background map data
+  ; modified from LoadBG
+.row_loop:
+  ld c, 5
+.tiles_loop:
+REPT 4
+  ld a, [de]
+  ld [hl+], a
+  inc de
+  cp MAN
+  call z, ProcessManTile
+  cp MAN_ON_GOAL
+  call z, ProcessManTile
+  cp BOX
+  call z, ProcessBoxTile
+ENDR
+  dec c
+  jr nz, .tiles_loop
+  ld a, l
+  add 12      ; Skip 12 unused tiles
+  ld l, a
+  adc a, h    ; Handle carry
+  sub l
+  ld h, a
+  dec b
+  jr nz, .row_loop
+
   ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
   ld [rLCDC], a
 
@@ -162,6 +187,12 @@ GameWin:
 
 
 SECTION "Functions", ROM0
+ProcessManTile:
+  ret
+
+ProcessBoxTile:
+  ret
+
 LoadBG:
 ; input:
 ; * DE: location of the map data
