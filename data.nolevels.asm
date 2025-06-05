@@ -214,3 +214,6 @@ GameWinScreen:
   DB "                    "
   DB "                    "
   DB "                    "
+  DB "                    "
+  DB "                    "
+  DB "                    "
