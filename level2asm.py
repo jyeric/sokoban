@@ -37,7 +37,9 @@ for line in lines:
         level += 1
         upper_space = 5 + (8 - cnt) // 2
         lower_space = 18 - upper_space - cnt
-        print('  DB "                    "\n' * (upper_space - 1) + '  DB "                    "')
+        print(f'  DB "                LV{(level-1):02d}"')
+        print(f'  DB "                 000"')
+        print('  DB "                    "\n' * (upper_space - 3) + '  DB "                    "')
         for label in labels:
             left_space = (line_size - len(label)) // 2
             right_space = line_size - left_space - len(label)
@@ -66,7 +68,9 @@ print("Lv" + str(level) + ":")
 level += 1
 upper_space = 5 + (8 - cnt) // 2
 lower_space = 18 - upper_space - cnt
-print('  DB "                    "\n' * (upper_space - 1) + '  DB "                    "')
+print(f'  DB "                LV{(level-1):02d}"')
+print(f'  DB "                 000"')
+print('  DB "                    "\n' * (upper_space - 3) + '  DB "                    "')
 for label in labels:
     left_space = (line_size - len(label)) // 2
     right_space = line_size - left_space - len(label)
