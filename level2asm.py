@@ -93,4 +93,4 @@ for i in range(1, level):
 print('\nLevelInfo:')
 print("; record: pos, \\n box_num")
 for i in range(0, level - 1):
-    print(f'  DW {str(man[i])}\n  DB {str(boxes[i])}') 
+    print(f'  DW {str(man[i])} + _SCRN0\n  DB {str(boxes[i])}')

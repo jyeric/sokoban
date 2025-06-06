@@ -50,7 +50,7 @@ StateMachine:         ; From labnotes.html#jump-table-application-state-machines
   ld l, a             ; Complete the full address
   jp hl               ; Jump to the state's handler
 
-StateTable:
+StateTable:           ; TODO: is here (or data.asm) the right place for the state table?
   DW Splash
   DW LevelLoad
   DW LevelPlay
@@ -113,6 +113,7 @@ LevelLoad:
   ret
 
 LevelPlay:
+  call WaitVBlank
   call readKeys
   ; bit 7: down
   ; bit 6: up
@@ -127,7 +128,7 @@ LevelPlay:
   cp 0
   ld b, a
   jr z, LevelPlay
-  ; Get the positon of the player
+  ; Get the position of the player
   ; hl The BG0 place
   ; de man's additional pos
   ld a, [man_pos]
@@ -136,7 +137,7 @@ LevelPlay:
   ld h, a
   
   ld a, b
-  ;Get the object where the person will move
+  ; Get the object where the person will move
   bit 7, a
   jr nz, .move_down
   bit 6, a
@@ -180,7 +181,7 @@ LevelPlay:
   jr z, .movespace ; move to space
   cp a, GOAL
   jr z, .movegoal  ; FIXME: BUG: 忘记移动到goal的可能性了
-  
+
   ; The only possbility now is the box or BOX_ON_GOAL
   add hl, de
   ld b, a
@@ -198,7 +199,7 @@ LevelPlay:
   ld a, BOX ; will be written as goal_on_box by calling
   ld [hl], a ; Move the box
   call z, .addcnt
-  
+
   ;Processing with the box next to next to it
   ; Now de = -de
   ld a, d
@@ -274,7 +275,7 @@ LevelPlay:
 
   ld a, MAN_ON_GOAL
   ld [hl], a
-  
+
   ld a, [bc]
   cp MAN
   jr z, .mantospace
@@ -453,21 +454,21 @@ readKeys:
   ldh [rP1], a
   ldh a, [rP1] :: ldh a, [rP1]
   cpl
-  and $0F         ; lower nibble has down, up, left, right
-  swap a           ; becomes high nibble
+  and $0F           ; lower nibble has down, up, left, right
+  swap a            ; becomes high nibble
   ld b, a
   ld a, $10
   ldh [rP1], a
   ldh a, [rP1] :: ldh a, [rP1] :: ldh a, [rP1]
   ldh a, [rP1] :: ldh a, [rP1] :: ldh a, [rP1]
   cpl
-  and $0F         ; lower nibble has start, select, B, A
+  and $0F           ; lower nibble has start, select, B, A
   or b
   ld b, a
 
   ld a, [previous]  ; load previous state
-  xor b	      ; result will be 0 if it's the same as current read
-  and b	      ; keep buttons that were pressed during this read only
+  xor b             ; result will be 0 if it's the same as current read
+  and b             ; keep buttons that were pressed during this read only
   ld [current], a   ; store result in "current" variable and c register
   ld c, a
   ld a, b           ; current state will be previous in next read
