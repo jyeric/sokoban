@@ -19,6 +19,7 @@ EntryPoint:
 
   call CopyTilesToVRAM
   call ResetVariables
+
   ; Load the Splash Screen
   ld de, SplashScreen
   ld hl, _SCRN0
@@ -105,8 +106,8 @@ LevelLoad:
 .tiles_loop:
 REPT 4
   ld a, [de]
-  ld [hl+], a
   inc de
+  ld [hl+], a
   cp MAN
   call z, ProcessManTile
   cp MAN_ON_GOAL
@@ -188,9 +189,17 @@ GameWin:
 
 SECTION "Functions", ROM0
 ProcessManTile:
+  ld a, l
+  dec a
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos], a
   ret
 
 ProcessBoxTile:
+  ld a, [box_num]
+  inc a
+  ld [box_num], a
   ret
 
 LoadBG:
