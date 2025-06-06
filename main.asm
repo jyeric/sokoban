@@ -239,7 +239,7 @@ LevelPlay:
   ld [ongoal_num], a
   ret
 .deccnt:
-  ld a, GOAL
+  ld a, MAN_ON_GOAL
   ld [hl], a
   ld a, [ongoal_num]
   dec a
