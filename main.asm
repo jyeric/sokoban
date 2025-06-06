@@ -118,7 +118,7 @@ LevelPlay:
   ; bit 2: select
   ; bit 1: B button
   ; bit 0: A button
-  ld a, [current]
+  ld a, c
   ; Continue readkey if no key has touched
   cp 0
   ld b, a
