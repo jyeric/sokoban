@@ -69,6 +69,9 @@ Splash:
   ret
 
 LevelLoad:
+  ; Reset some variables
+  ld a, 0
+  ld [ongoal_num], a
   ; Select level and load it
   ld a, [level]
   ld hl, LevelTable
@@ -90,9 +93,10 @@ LevelLoad:
 
   ; Write into Variables
   ld a, [level]
+  ld b, a
   ld hl, LevelInfo
   add a
-  add a
+  add b
   ld e, a
   ld d, 0
   add hl, de
@@ -141,6 +145,12 @@ LevelPlay:
   jr nz, .move_left
   bit 4, a
   jr nz, .move_right
+  bit 3, a
+  jr nz, .reset
+.reset:
+  ld a, LEVEL_LOAD_STATE
+  ld [state], a      ; Set state to LevelWin
+  ret
 ;Output:
 .move_down:
   ld de, 32
