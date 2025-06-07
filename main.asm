@@ -74,6 +74,7 @@ LevelLoad:
   ; Clear the counter
   xor a
   ld [box_num], a
+  ld [step], a
   ; Select level and load it
   ld a, [level]
   ld hl, LevelTable
@@ -95,7 +96,8 @@ LevelLoad:
 
   ; Write into BG
   call WaitVBlank
-  xor a             ; a = 0
+  ld a, SPACE
+  ; xor a             ; a = 0
   ld [rLCDC], a
   ld hl, _SCRN0
   push bc
@@ -131,6 +133,21 @@ ENDR
 
   ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
   ld [rLCDC], a
+
+  ; Load Level name and steps
+  call WaitVBlank
+  ld a, [level]
+  inc a
+  call binToDec
+  ld d, START_POINT_OF_LEVEL_1
+  ld e, START_POINT_OF_LEVEL_2
+  call copyDigitsRev
+
+  ld a, 0
+  call binToDec
+  ld d, START_POINT_OF_STEP_1
+  ld e, START_POINT_OF_STEP_2
+  call copyDigitsRev
 
   ; Change state
   ld a, LEVEL_PLAY_STATE
@@ -198,7 +215,7 @@ LevelPlay:
   ld a, [hl]
   ; Cannot move
   cp a, WALL ; cannot move
-  jp z, .win
+  ret z
   ; Will not move the box
   ld a, [hl]
   cp a, SPACE
@@ -211,11 +228,11 @@ LevelPlay:
   ld b, a
   ld a, [hl]
   cp a, WALL
-  jp z, .win ; We cannot move the box
+  ret z      ; We cannot move the box
   cp a, BOX
-  jp z, .win ; We cannot move the box
+  ret z      ; We cannot move the box
   cp a, BOX_ON_GOAL
-  jp z, .win ; We cannot move the box
+  ret z      ; We cannot move the box
 .movebox:
   call WaitVBlank
   ld a, [hl]
@@ -312,6 +329,15 @@ LevelPlay:
   ld a, SPACE
   ld [bc], a
 .win:
+  ; Add addtional step
+  ld a, [step]
+  inc a
+  ld [step], a
+  call binToDec
+  ld d, START_POINT_OF_STEP_1
+  ld e, START_POINT_OF_STEP_2
+  call copyDigitsRev
+  ; Check whether win or not
   ld a, [box_num]
   cp 0
   ret nz
@@ -366,6 +392,55 @@ GameWin:
 
 
 SECTION "Functions", ROM0
+binToDec:
+; Input: a, the 16 bit digit
+; Output: b, the third digit
+;         c, the second digit
+;         d, the first digit
+  ld hl, temp_digit
+  ld b, 0
+  ld c, 0
+  ld d, 0
+  ld e, a
+.getThirdDigit
+  cp 100 ;a < 100
+  jr c, .getSecondDigit
+  sub 100
+  inc b
+  jr .getThirdDigit
+.getSecondDigit
+  cp 10 ;a < 10
+  jr c, .getFirstDigit
+  sub 10
+  inc c
+  jr .getSecondDigit
+.getFirstDigit
+  cp 1 ;a < 1
+  jr c, .end
+  sub 1
+  inc d
+  jr .getFirstDigit
+.end:
+  ld [hl], d
+  inc hl
+  ld [hl], c
+  inc hl
+  ld [hl], b
+  ret
+
+copyDigitsRev:
+  ; Input: de: the starting point of BG to write
+  ld a, [hl-]
+  ld [de], a
+  inc de
+  ld a, [hl-]
+  ld [de], a
+  inc de
+  ld a, [hl-]
+  ld [de], a
+  inc de
+  ret
+
 ProcessManTile:
   ld a, l
   dec a
@@ -410,7 +485,8 @@ ResetBG:
 ; input:
 ; * HL: location of the BG area in VRAM
   ld bc, 1024
-  xor a ; a = 0
+  ;xor a ; a = 0
+  ld a, SPACE
 .loop:
   ld [hl+], a
   dec c
@@ -418,7 +494,8 @@ ResetBG:
   dec b
   jr nz, .loop
 
-  xor a ; a = 0
+  ; xor a ; a = 0
+  xor a
   ld [rSCX], a
   ld [rSCY], a
   ret
@@ -530,3 +607,5 @@ previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
 man_pos:   DS 2
 box_num:   DS 1
+temp_digit:DS 3
+step:      DS 1
