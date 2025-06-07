@@ -52,7 +52,7 @@ StateMachine:         ; From labnotes.html#jump-table-application-state-machines
   ld l, a             ; Complete the full address
   jp hl               ; Jump to the state's handler
 
-StateTable:
+StateTable:           ; TODO: is here (or data.asm) the right place for the state table?
   DW Splash
   DW LevelLoad
   DW LevelPlay
@@ -138,14 +138,192 @@ ENDR
   ret
 
 LevelPlay:
-  ; For test only
+  call WaitVBlank
   call readKeys
-  ld a, PADF_SELECT
-  and b
+  ; bit 7: down
+  ; bit 6: up
+  ; bit 5: left
+  ; bit 4: right
+  ; bit 3: start
+  ; bit 2: select
+  ; bit 1: B button
+  ; bit 0: A button
+  ld a, c
+  ; Continue readkey if no key has touched
+  cp 0
+  ld b, a
   jr z, LevelPlay
-  ld a, LEVEL_WIN_STATE
-  ld [state], a     ; Set state to LevelWin
+  ; Get the position of the player
+  ; hl The BG0 place
+  ; de man's additional pos
+  ld a, [man_pos]
+  ld l, a
+  ld a, [man_pos + 1]
+  ld h, a
+  
+  ld a, b
+  ; Get the object where the person will move
+  bit 7, a
+  jr nz, .move_down
+  bit 6, a
+  jr nz, .move_up
+  bit 5, a
+  jr nz, .move_left
+  bit 4, a
+  jr nz, .move_right
+  bit 3, a
+  jr nz, .reset
+.reset:
+  ld a, LEVEL_LOAD_STATE
+  ld [state], a      ; Set state to LevelWin
   ret
+;Output:
+.move_down:
+  ld de, 32
+  jr .move
+.move_up:
+  ld de, -32
+  jr .move
+.move_left:
+  ld de, -1
+  jr .move
+.move_right:
+  ld de, 1
+  jr .move
+.move:
+  ;FIXME: BG没有等vblank
+  call WaitVBlank
+  ld b, h
+  ld c, l ; bc = hl
+  add hl, de
+  ld a, [hl]
+  ; Cannot move
+  cp a, WALL ; cannot move
+  jp z, .win
+  ; Will not move the box
+  ld a, [hl]
+  cp a, SPACE
+  jr z, .movespace ; move to space
+  cp a, GOAL
+  jr z, .movegoal  ; FIXME: BUG: 忘记移动到goal的可能性了
+
+  ; The only possbility now is the box or BOX_ON_GOAL
+  add hl, de
+  ld b, a
+  ld a, [hl]
+  cp a, WALL
+  jp z, .win ; We cannot move the box
+  cp a, BOX
+  jp z, .win ; We cannot move the box
+  cp a, BOX_ON_GOAL
+  jp z, .win ; We cannot move the box
+.movebox:
+  call WaitVBlank
+  ld a, [hl]
+  cp a, GOAL
+  ld a, BOX ; will be written as goal_on_box by calling
+  ld [hl], a ; Move the box
+  call z, .addcnt
+
+  ;Processing with the box next to next to it
+  ; Now de = -de
+  ld a, d
+  cpl
+  ld d, a
+  ld a, e
+  cpl
+  ld e, a
+  inc de
+  add hl, de
+
+  ; Record person's position
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+
+  call WaitVBlank
+  ld a, [hl]
+  cp a, BOX_ON_GOAL
+  ld a, MAN ; will be written as goal by calling
+  ld [hl], a
+  call z, .deccnt
+  ;Processing the man
+  add hl, de
+  ld a, [hl]
+  cp a, MAN_ON_GOAL
+  ld a, SPACE
+  ld [hl], a
+  jr z, .removemanfromgoal
+  jr .win
+
+.addcnt:
+  ld a, BOX_ON_GOAL
+  ld [hl], a
+  ld a, [ongoal_num]
+  inc a
+  ld [ongoal_num], a
+  ret
+.deccnt:
+  ld a, MAN_ON_GOAL
+  ld [hl], a
+  ld a, [ongoal_num]
+  dec a
+  ld [ongoal_num], a
+  ret
+.removemanfromgoal:
+  ld a, GOAL
+  ld [hl], a
+  jr .win ; the last function; don't need to call/ret
+.movespace:
+  ; Record person's position
+  call WaitVBlank
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+
+  ld a, MAN
+  ld [hl], a
+
+  ld a, [bc]
+  cp MAN
+  jr z, .mantospace
+  jr .mantogoal
+.movegoal
+  ; Record person's position
+  call WaitVBlank
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+
+  ld a, MAN_ON_GOAL
+  ld [hl], a
+
+  ld a, [bc]
+  cp MAN
+  jr z, .mantospace
+  jr .mantogoal
+.mantogoal:
+  ld a, GOAL
+  ld [bc], a
+  jp .win
+.mantospace:
+  ld a, SPACE
+  ld [bc], a
+.win:
+  ld a, [box_num]
+  ld b, a
+  ld a, [ongoal_num]
+  cp b
+  ret nz
+
+  ; Change state if win
+  ld a, LEVEL_WIN_STATE
+  ld [state], a      ; Set state to LevelWin
+  ret
+
 
 LevelWin:
   ld a, [level]
@@ -323,21 +501,21 @@ readKeys:
   ldh [rP1], a
   ldh a, [rP1] :: ldh a, [rP1]
   cpl
-  and $0F         ; lower nibble has down, up, left, right
-  swap a           ; becomes high nibble
+  and $0F           ; lower nibble has down, up, left, right
+  swap a            ; becomes high nibble
   ld b, a
   ld a, $10
   ldh [rP1], a
   ldh a, [rP1] :: ldh a, [rP1] :: ldh a, [rP1]
   ldh a, [rP1] :: ldh a, [rP1] :: ldh a, [rP1]
   cpl
-  and $0F         ; lower nibble has start, select, B, A
+  and $0F           ; lower nibble has start, select, B, A
   or b
   ld b, a
 
   ld a, [previous]  ; load previous state
-  xor b	      ; result will be 0 if it's the same as current read
-  and b	      ; keep buttons that were pressed during this read only
+  xor b             ; result will be 0 if it's the same as current read
+  and b             ; keep buttons that were pressed during this read only
   ld [current], a   ; store result in "current" variable and c register
   ld c, a
   ld a, b           ; current state will be previous in next read
