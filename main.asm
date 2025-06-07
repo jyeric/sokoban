@@ -171,9 +171,6 @@ LevelPlay:
   ld b, a
   jr z, LevelPlay
 
-  ; Reset Variables
-  ld a, 0
-  ld [move_box], a
   ; Get the position of the player
   ; hl The BG0 place
   ; de man's additional pos
@@ -215,6 +212,10 @@ LevelPlay:
   ld de, 1
   jr .move
 .move:
+  ; Reset Variables
+  ld a, 0
+  ld [move_box], a
+
   ld a, d
   ld [direction], a
   ld a, e
@@ -385,6 +386,9 @@ LevelPlay:
   ld a, [direction + 1]
   ld c, a
 
+  ; de = bc
+  ld d, b
+  ld e, c
   ; Reverse bc
   ld a, b
   cpl 
@@ -396,15 +400,17 @@ LevelPlay:
 
   ld a, [move_box]
   cp 1
-  jr z, .withdraw_move_box
-.withdraw_not_move_box:
-  call WaitVBlank
+
   ; Get the position of the player
   ; hl The man's position
   ld a, [man_pos]
   ld l, a
   ld a, [man_pos + 1]
   ld h, a
+
+  jr z, .withdraw_move_box
+.withdraw_not_move_box:
+  call WaitVBlank
   
   ld a, [hl]
   cp MAN_ON_GOAL
@@ -440,6 +446,55 @@ LevelPlay:
   ld [hl], a
   ret
 .withdraw_move_box:
+  call WaitVBlank
+  ; Input hl the character
+  ; bc: the reverse of direction
+  ; de: direction
+  ; hl + de : the box
+  ; hl + bc : the original place
+  ld a, [hl]
+  cp a, MAN_ON_GOAL
+  call z, .tobox_on_goal
+  call nz, .tobox
+  call z, .inccnt2
+  
+  add hl, de
+  ld a, [hl]
+  cp a, BOX
+  call z, .tospace
+  call nz, .togoal
+  call nz, .deccnt2
+
+  add hl, bc
+  add hl, bc
+
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+
+  ld a, [hl]
+  cp a, SPACE
+  call z, .toman
+  call nz, .toman_on_goal
+  ret
+.tobox:
+  ld a, BOX
+  ld [hl], a
+  ret
+.tobox_on_goal:
+  ld a, BOX_ON_GOAL
+  ld [hl], a
+  ret
+.deccnt2:
+  ld a, [box_num]
+  inc a
+  ld [box_num], a
+  ret
+.inccnt2:
+  ld a, [box_num]
+  dec a
+  ld [box_num], a
   ret
 
 
