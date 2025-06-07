@@ -11,23 +11,25 @@ SECTION "Header", ROM0[$100]
 
 EntryPoint:
   call WaitVBlank
-  ld a, 0
-  ld [rLCDC], a
+  xor a ; a = 0
+  ld [rLCDC], a ; turn off LCD
 
   ld a, %11111100 ; b&w palette
   ld [rOBP0], a
 
   call CopyTilesToVRAM
   call ResetVariables
-  ; call ResetBG
+
   ; Load the Splash Screen
   ld de, SplashScreen
   ld hl, _SCRN0
+  ld b, 18
   call LoadBG
 
   ; Load Level Complete Screen
   ld de, LevelWinScreen
   ld hl, _SCRN1
+  ld b, 18
   call LoadBG
 
   ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
@@ -69,9 +71,9 @@ Splash:
   ret
 
 LevelLoad:
-  ; Reset some variables
-  ld a, 0
-  ld [ongoal_num], a
+  ; Clear the counter
+  xor a
+  ld [box_num], a
   ; Select level and load it
   ld a, [level]
   ld hl, LevelTable
@@ -79,37 +81,60 @@ LevelLoad:
   ld d, 0
   add hl, de
   add hl, de
+  add hl, de        ; 3 bytes per entry
   ld e, [hl]
   inc hl
   ld d, [hl]
+  inc hl
+  ld b, [hl]        ; b = number of rows to load >= 3
+  ld a, 18
+  sub b
+  swap a            ; a = floor((18 - b) / 2) * 32 <= 224, no overflow
+  and %11100000     ; optimized as in labnotes.html#divide-a-by-16-shift-a-right-4-bits
+  ld c, a           ; c = number of bytes to skip
+
   ; Write into BG
   call WaitVBlank
-  ld a, 0
+  xor a             ; a = 0
   ld [rLCDC], a
   ld hl, _SCRN0
-  call LoadBG         ; Load the background map data
+  push bc
+  call ResetBG
+  pop bc
+  ld h, $98         ; h = $98 since _SCRN0 = $9800
+  ld l, c           ; hl += 0c <=> l = c as no overflow
+  ; modified from LoadBG
+.row_loop:
+  ld c, 5
+.tiles_loop:
+REPT 4
+  ld a, [de]
+  inc de
+  ld [hl+], a
+  cp MAN
+  call z, ProcessManTile
+  cp MAN_ON_GOAL
+  call z, ProcessManTile
+  cp BOX
+  call z, ProcessBoxTile
+ENDR
+  dec c
+  jr nz, .tiles_loop
+  ld a, l
+  add 12      ; Skip 12 unused tiles
+  ld l, a
+  adc a, h    ; Handle carry
+  sub l
+  ld h, a
+  dec b
+  jr nz, .row_loop
+
   ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
   ld [rLCDC], a
 
-  ; Write into Variables
-  ld a, [level]
-  ld b, a
-  ld hl, LevelInfo
-  add a
-  add b
-  ld e, a
-  ld d, 0
-  add hl, de
-  ld a, [hl+]         ; Load the man's position
-  ld [man_pos], a
-  ld a, [hl+]        ; Load the man's y position
-  ld [man_pos + 1], a
-  ld a, [hl+]         ; Load the level's box number
-  ld [box_num], a
-
   ; Change state
   ld a, LEVEL_PLAY_STATE
-  ld [state], a      ; Set state to LevelPlay
+  ld [state], a     ; Set state to LevelPlay
   ret
 
 LevelPlay:
@@ -166,7 +191,6 @@ LevelPlay:
   ld de, 1
   jr .move
 .move:
-  ;FIXME: BG没有等vblank
   call WaitVBlank
   ld b, h
   ld c, l ; bc = hl
@@ -180,7 +204,7 @@ LevelPlay:
   cp a, SPACE
   jr z, .movespace ; move to space
   cp a, GOAL
-  jr z, .movegoal  ; FIXME: BUG: 忘记移动到goal的可能性了
+  jr z, .movegoal
 
   ; The only possbility now is the box or BOX_ON_GOAL
   add hl, de
@@ -235,16 +259,16 @@ LevelPlay:
 .addcnt:
   ld a, BOX_ON_GOAL
   ld [hl], a
-  ld a, [ongoal_num]
-  inc a
-  ld [ongoal_num], a
+  ld a, [box_num]
+  dec a
+  ld [box_num], a
   ret
 .deccnt:
   ld a, MAN_ON_GOAL
   ld [hl], a
-  ld a, [ongoal_num]
-  dec a
-  ld [ongoal_num], a
+  ld a, [box_num]
+  inc a
+  ld [box_num], a
   ret
 .removemanfromgoal:
   ld a, GOAL
@@ -289,9 +313,7 @@ LevelPlay:
   ld [bc], a
 .win:
   ld a, [box_num]
-  ld b, a
-  ld a, [ongoal_num]
-  cp b
+  cp 0
   ret nz
 
   ; Change state if win
@@ -301,6 +323,11 @@ LevelPlay:
 
 
 LevelWin:
+  ld a, [level]
+  cp LEVEL_NUM - 1
+  ld a, GAME_WIN_STATE
+  ld [state], a
+  ret z
   call WaitVBlank
   ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9C00 ; Switch to _SCRN1
   ld [rLCDC], a
@@ -312,7 +339,7 @@ LevelWin:
   ld a, LEVEL_LOAD_STATE
   ld [state], a
   ld hl, level
-  inc [hl]                ; FIXME: Check if game is finished
+  inc [hl]
   ret
 
 GameWin:
@@ -321,7 +348,10 @@ GameWin:
   ld [rLCDC], a         ; turn off the screen
   ld de, GameWinScreen
   ld hl, _SCRN1
+  ld b, 18
   call LoadBG
+  ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9C00 ; Switch to _SCRN1
+  ld [rLCDC], a
 .loop:
   jr .loop
   ; call readKeys
@@ -336,11 +366,25 @@ GameWin:
 
 
 SECTION "Functions", ROM0
+ProcessManTile:
+  ld a, l
+  dec a
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+  ret
+
+ProcessBoxTile:
+  ld a, [box_num]
+  inc a
+  ld [box_num], a
+  ret
+
 LoadBG:
 ; input:
 ; * DE: location of the map data
 ; * HL: location of the BG area in VRAM
-  ld b, 18
+; * B: number of rows to load (18 rows for 18x20 map)
 .row_loop:
   ld c, 5
 .tiles_loop:
@@ -361,10 +405,12 @@ ENDR
   jr nz, .row_loop
   ret
 
-ResetBG: ; TODO: check if this is needed
-  ld hl, _SCRN0
+ResetBG:
+; Reset the background area in VRAM
+; input:
+; * HL: location of the BG area in VRAM
   ld bc, 1024
-  ld a, 0
+  xor a ; a = 0
 .loop:
   ld [hl+], a
   dec c
@@ -372,7 +418,7 @@ ResetBG: ; TODO: check if this is needed
   dec b
   jr nz, .loop
 
-  ld a, 0
+  xor a ; a = 0
   ld [rSCX], a
   ld [rSCY], a
   ret
@@ -387,7 +433,7 @@ ResetOAM:
 ; input:
 ; * HL: location of OAM or Shadow OAM
   ld b, 40*4
-  ld a, 0
+  xor a ; a = 0
 .loop:
   ld [hl], a
   inc hl
@@ -397,21 +443,19 @@ ResetOAM:
 
 ResetVariables:
 ; Initialize all variables of the program to 0,
-; including OAMs and BG
+; including OAMs
   ld hl, ShadowOAM
   call ResetOAM
   ld hl, _OAMRAM
   call ResetOAM
-  call ResetBG
   xor a ; a = 0
   ld [state], a
+  ld [level], a
   ld [previous], a
   ld [current], a
   ld [man_pos], a
   ld [man_pos + 1], a
   ld [box_num], a
-  ld [ongoal_num], a
-  ld [level], a
   ret
 
 CopyTilesToVRAM:
@@ -486,4 +530,3 @@ previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
 man_pos:   DS 2
 box_num:   DS 1
-ongoal_num:DS 1
