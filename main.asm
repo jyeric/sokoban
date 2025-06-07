@@ -71,6 +71,9 @@ Splash:
   ret
 
 LevelLoad:
+  ; Clear the counter
+  xor a
+  ld [box_num], a
   ; Select level and load it
   ld a, [level]
   ld hl, LevelTable
@@ -193,7 +196,7 @@ ProcessManTile:
   dec a
   ld [man_pos], a
   ld a, h
-  ld [man_pos], a
+  ld [man_pos + 1], a
   ret
 
 ProcessBoxTile:
@@ -278,7 +281,6 @@ ResetVariables:
   ld [man_pos], a
   ld [man_pos + 1], a
   ld [box_num], a
-  ld [level], a
   ret
 
 CopyTilesToVRAM:
