@@ -170,6 +170,10 @@ LevelPlay:
   cp 0
   ld b, a
   jr z, LevelPlay
+
+  ; Reset Variables
+  ld a, 0
+  ld [move_box], a
   ; Get the position of the player
   ; hl The BG0 place
   ; de man's additional pos
@@ -190,6 +194,8 @@ LevelPlay:
   jr nz, .move_right
   bit 3, a
   jr nz, .reset
+  bit 2, a
+  jp nz, .withdraw_last_step
 .reset:
   ld a, LEVEL_LOAD_STATE
   ld [state], a      ; Set state to LevelWin
@@ -200,6 +206,7 @@ LevelPlay:
   jr .move
 .move_up:
   ld de, -32
+  ld [direction], a
   jr .move
 .move_left:
   ld de, -1
@@ -208,6 +215,11 @@ LevelPlay:
   ld de, 1
   jr .move
 .move:
+  ld a, d
+  ld [direction], a
+  ld a, e
+  ld [direction + 1], a
+
   call WaitVBlank
   ld b, h
   ld c, l ; bc = hl
@@ -234,6 +246,8 @@ LevelPlay:
   cp a, BOX_ON_GOAL
   ret z      ; We cannot move the box
 .movebox:
+  ld a, 1
+  ld [move_box], a ; We move the box in this step
   call WaitVBlank
   ld a, [hl]
   cp a, GOAL
@@ -329,6 +343,9 @@ LevelPlay:
   ld a, SPACE
   ld [bc], a
 .win:
+  ld a, 1 
+  ld [can_withdraw], a
+
   ; Add addtional step
   ld a, [step]
   inc a
@@ -346,6 +363,85 @@ LevelPlay:
   ld a, LEVEL_WIN_STATE
   ld [state], a      ; Set state to LevelWin
   ret
+
+.withdraw_last_step:
+  ld a, [can_withdraw]
+  cp a, 0
+  ret z ; There is no last step.
+
+  ld a, 0
+  ld [can_withdraw], a
+
+  ld a, [step]
+  dec a
+  ld [step], a
+  call binToDec
+  ld d, START_POINT_OF_STEP_1
+  ld e, START_POINT_OF_STEP_2
+  call copyDigitsRev
+
+  ld a, [direction]
+  ld b, a
+  ld a, [direction + 1]
+  ld c, a
+
+  ; Reverse bc
+  ld a, b
+  cpl 
+  ld b, a
+  ld a, c
+  cpl 
+  ld c, a
+  inc bc
+
+  ld a, [move_box]
+  cp 1
+  jr z, .withdraw_move_box
+.withdraw_not_move_box:
+  call WaitVBlank
+  ; Get the position of the player
+  ; hl The man's position
+  ld a, [man_pos]
+  ld l, a
+  ld a, [man_pos + 1]
+  ld h, a
+  
+  ld a, [hl]
+  cp MAN_ON_GOAL
+  call z, .togoal
+  call nz, .tospace
+  add hl, bc ; + direction
+
+  
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+
+  ld a, [hl]
+  cp SPACE
+  call z, .toman
+  call nz, .toman_on_goal
+  ret
+.togoal:
+  ld a, GOAL
+  ld [hl], a
+  ret
+.tospace:
+  ld a, SPACE
+  ld [hl], a
+  ret
+.toman:
+  ld a, MAN
+  ld [hl], a
+  ret
+.toman_on_goal:
+  ld a, MAN_ON_GOAL
+  ld [hl], a
+  ret
+.withdraw_move_box:
+  ret
+
 
 
 LevelWin:
@@ -533,6 +629,9 @@ ResetVariables:
   ld [man_pos], a
   ld [man_pos + 1], a
   ld [box_num], a
+  ld [move_box], a
+  ld [direction], a
+  ld [can_withdraw], a
   ret
 
 CopyTilesToVRAM:
@@ -609,3 +708,6 @@ man_pos:   DS 2
 box_num:   DS 1
 temp_digit:DS 3
 step:      DS 1
+move_box:  DS 1  ;If the last step move boxes
+direction:  DS 2  ;The direction of the last step
+can_withdraw: DS 1
