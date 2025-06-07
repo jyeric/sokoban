@@ -191,7 +191,6 @@ LevelPlay:
   ld de, 1
   jr .move
 .move:
-  ;FIXME: BG没有等vblank
   call WaitVBlank
   ld b, h
   ld c, l ; bc = hl
@@ -205,7 +204,7 @@ LevelPlay:
   cp a, SPACE
   jr z, .movespace ; move to space
   cp a, GOAL
-  jr z, .movegoal  ; FIXME: BUG: 忘记移动到goal的可能性了
+  jr z, .movegoal
 
   ; The only possbility now is the box or BOX_ON_GOAL
   add hl, de
@@ -260,16 +259,16 @@ LevelPlay:
 .addcnt:
   ld a, BOX_ON_GOAL
   ld [hl], a
-  ld a, [ongoal_num]
-  inc a
-  ld [ongoal_num], a
+  ld a, [box_num]
+  dec a
+  ld [box_num], a
   ret
 .deccnt:
   ld a, MAN_ON_GOAL
   ld [hl], a
-  ld a, [ongoal_num]
-  dec a
-  ld [ongoal_num], a
+  ld a, [box_num]
+  inc a
+  ld [box_num], a
   ret
 .removemanfromgoal:
   ld a, GOAL
@@ -314,9 +313,7 @@ LevelPlay:
   ld [bc], a
 .win:
   ld a, [box_num]
-  ld b, a
-  ld a, [ongoal_num]
-  cp b
+  cp 0
   ret nz
 
   ; Change state if win
@@ -533,4 +530,3 @@ previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
 man_pos:   DS 2
 box_num:   DS 1
-ongoal_num:DS 1
