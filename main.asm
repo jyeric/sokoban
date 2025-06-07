@@ -75,6 +75,7 @@ LevelLoad:
   xor a
   ld [box_num], a
   ld [step], a
+  ld [can_withdraw], a
   ; Select level and load it
   ld a, [level]
   ld hl, LevelTable
@@ -96,8 +97,7 @@ LevelLoad:
 
   ; Write into BG
   call WaitVBlank
-  ld a, SPACE
-  ; xor a             ; a = 0
+  xor a             ; a = 0
   ld [rLCDC], a
   ld hl, _SCRN0
   push bc
@@ -636,7 +636,6 @@ ResetBG:
 ; input:
 ; * HL: location of the BG area in VRAM
   ld bc, 1024
-  ;xor a ; a = 0
   ld a, SPACE
 .loop:
   ld [hl+], a
