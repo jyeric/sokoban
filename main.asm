@@ -52,13 +52,6 @@ StateMachine:         ; From labnotes.html#jump-table-application-state-machines
   ld l, a             ; Complete the full address
   jp hl               ; Jump to the state's handler
 
-StateTable:           ; TODO: is here (or data.asm) the right place for the state table?
-  DW Splash
-  DW LevelLoad
-  DW LevelPlay
-  DW LevelWin
-  DW GameWin
-
 Splash:
   call readKeys
   ld a, PADF_START
@@ -95,47 +88,22 @@ LevelLoad:
   and %11100000     ; optimized as in labnotes.html#divide-a-by-16-shift-a-right-4-bits
   ld c, a           ; c = number of bytes to skip
 
-  ; Write into BG
+  ; Turn off LCD
   call WaitVBlank
   xor a             ; a = 0
   ld [rLCDC], a
+
+  ; Reset BG
   ld hl, _SCRN0
   push bc
   call ResetBG
   pop bc
+  ; Write into BG
   ld h, $98         ; h = $98 since _SCRN0 = $9800
   ld l, c           ; hl += 0c <=> l = c as no overflow
-  ; modified from LoadBG
-.row_loop:
-  ld c, 5
-.tiles_loop:
-REPT 4
-  ld a, [de]
-  inc de
-  ld [hl+], a
-  cp MAN
-  call z, ProcessManTile
-  cp MAN_ON_GOAL
-  call z, ProcessManTile
-  cp BOX
-  call z, ProcessBoxTile
-ENDR
-  dec c
-  jr nz, .tiles_loop
-  ld a, l
-  add 12      ; Skip 12 unused tiles
-  ld l, a
-  adc a, h    ; Handle carry
-  sub l
-  ld h, a
-  dec b
-  jr nz, .row_loop
-
-  ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
-  ld [rLCDC], a
+  call LoadLevelMap
 
   ; Load Level name and steps
-  call WaitVBlank
   ld a, [level]
   inc a
   call binToDec
@@ -148,6 +116,9 @@ ENDR
   ld d, START_POINT_OF_STEP_1
   ld e, START_POINT_OF_STEP_2
   call copyDigitsRev
+
+  ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
+  ld [rLCDC], a
 
   ; Change state
   ld a, LEVEL_PLAY_STATE
@@ -543,6 +514,39 @@ GameWin:
 
 
 SECTION "Functions", ROM0
+LoadLevelMap:
+; Load the level data from DE into BG
+; while scanning the map for the player and boxes
+; input:
+; * DE: location of the map data
+; * HL: location of the BG area in VRAM
+; * B: number of rows to load
+.row_loop:
+  ld c, 5
+.tiles_loop:
+REPT 4
+  ld a, [de]
+  inc de
+  ld [hl+], a
+  cp MAN
+  call z, ProcessManTile
+  cp MAN_ON_GOAL
+  call z, ProcessManTile
+  cp BOX
+  call z, ProcessBoxTile
+ENDR
+  dec c
+  jr nz, .tiles_loop
+  ld a, l
+  add 12      ; Skip 12 unused tiles
+  ld l, a
+  adc a, h    ; Handle carry
+  sub l
+  ld h, a
+  dec b
+  jr nz, .row_loop
+  ret
+
 binToDec:
 ; Input: a, the 16 bit digit
 ; Output: b, the third digit

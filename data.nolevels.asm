@@ -1,5 +1,4 @@
 ; Character map
-
 CHARMAP "0", 0
 CHARMAP "1", 1
 CHARMAP "2", 2
@@ -41,14 +40,12 @@ CHARMAP "~", 36
 CHARMAP "-", 37
 CHARMAP ",", 38
 CHARMAP "!", 39
-CHARMAP ".", 40
 
-CHARMAP " ", 41
-CHARMAP "$", 42
-CHARMAP "#", 43
-CHARMAP "@", 44
-
-
+CHARMAP " ", 40
+CHARMAP "$", 41
+CHARMAP "#", 42
+CHARMAP "@", 43
+CHARMAP ".", 44
 CHARMAP "*", 45
 CHARMAP "+", 46
 CHARMAP "\n", $FF
@@ -71,9 +68,17 @@ DEF START_POINT_OF_LEVEL_2 EQU $11
 DEF START_POINT_OF_STEP_1  EQU $98
 DEF START_POINT_OF_STEP_2  EQU $31
 
+SECTION "Data", ROM0
+StateTable:
+  DW Splash
+  DW LevelLoad
+  DW LevelPlay
+  DW LevelWin
+  DW GameWin
+
 SECTION "TileData", ROM0
 Tiles:
-; ID 0-40: characters, from labnotes.html#example-from-tetris-rom
+; ID 0-39: characters, from labnotes.html#example-from-tetris-rom
   DB $00,$3C,$66,$66,$66,$66,$3C,$00 ; 0
   DB $00,$18,$38,$18,$18,$18,$3C,$00 ; 1
   DB $00,$3C,$4E,$0E,$3C,$70,$7E,$00
@@ -110,14 +115,14 @@ Tiles:
   DB $00,$46,$2C,$18,$38,$64,$42,$00  ; X
   DB $00,$66,$66,$3C,$18,$18,$18,$00  ; Y
   DB $00,$7E,$0E,$1C,$38,$70,$7E,$00  ; Z
-  DB $00,$00,$00,$18,$18,$00,$00,$00  ; . (for goal squares)
+  DB $00,$00,$00,$00,$00,$60,$60,$00  ; ~ (the actual ".")
   DB $00,$00,$00,$3C,$3C,$00,$00,$00  ; -
   DB $00,$00,$00,$00,$00,$18,$18,$30  ; ,
   DB $18,$18,$18,$18,$18,$00,$18,$00  ; !
-  DB $00,$00,$00,$00,$00,$60,$60,$00  ; ~ (the actual ".")
-; ID 41: empty
+
+; ID 40: empty
   DS 8, $00
-; ID 42: box
+; ID 41: $ (box)
   DB %11111111
   DB %11000011
   DB %10111101
@@ -126,7 +131,7 @@ Tiles:
   DB %10111101
   DB %11000011
   DB %11111111
-; ID 43: wall
+; ID 42: # (wall)
   DB %11111111
   DB %00010001
   DB %00010001
@@ -135,7 +140,7 @@ Tiles:
   DB %01000100
   DB %01000100
   DB %11111111
-; ID 44: man
+; ID 43: @ (man)
   DB %00011100
   DB %00010100
   DB %00011000
@@ -144,7 +149,16 @@ Tiles:
   DB %00111100
   DB %01000010
   DB %01100011
-; ID 45: box on goal
+; ID 44: . (goal)
+  DB %00000000
+  DB %00000000
+  DB %00000000
+  DB %00011000
+  DB %00011000
+  DB %00000000
+  DB %00000000
+  DB %00000000
+; ID 45: * (box on goal)
   DB %11111111
   DB %10000001
   DB %10100101
@@ -153,7 +167,7 @@ Tiles:
   DB %10011001
   DB %10000001
   DB %11111111
-; ID 46: man on goal
+; ID 46: + (man on goal, same tile as man)
   DB %00011100
   DB %00010100
   DB %00011000
@@ -211,14 +225,12 @@ GameWinScreen:
   DB "                    "
   DB "                    "
   DB "                    "
+  DB "                    "
   DB "   SOKOBAN DELUXE   "
   DB "                    "
   DB "      YOU WIN!      "
   DB "                    "
   DB "         @*         "
-  DB "                    "
-  DB "                    "
-  DB "                    "
   DB "                    "
   DB "                    "
   DB "                    "
