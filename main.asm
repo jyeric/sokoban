@@ -178,7 +178,6 @@ LevelPlay:
   jr .move
 .move_up:
   ld de, -32
-  ld [direction], a
   jr .move
 .move_left:
   ld de, -1
