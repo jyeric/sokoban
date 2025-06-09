@@ -68,7 +68,7 @@ LevelLoad:
   xor a
   ld [box_num], a
   ld [step], a
-  ld [can_withdraw], a
+  ld [can_undo], a
   ; Select level and load it
   ld a, [level]
   ld hl, LevelTable
@@ -126,7 +126,7 @@ LevelLoad:
   ret
 
 LevelPlay:
-  call WaitVBlank
+  call WaitVBlank ; Avoid jitter
   call readKeys
   ; bit 7: down
   ; bit 6: up
@@ -163,7 +163,8 @@ LevelPlay:
   bit 3, b
   jr nz, .reset
   bit 2, b
-  jp nz, .withdraw_last_step
+  jp nz, .undo_last_step
+  ret
 .reset:
   ld a, LEVEL_LOAD_STATE
   ld [state], a      ; Set state to LevelWin
@@ -319,7 +320,7 @@ LevelPlay:
   ld [bc], a
 .win:
   ld a, 1 
-  ld [can_withdraw], a
+  ld [can_undo], a
 
   ; Add addtional step
   ld a, [step]
@@ -339,13 +340,13 @@ LevelPlay:
   ld [state], a      ; Set state to LevelWin
   ret
 
-.withdraw_last_step:
-  ld a, [can_withdraw]
+.undo_last_step:
+  ld a, [can_undo]
   cp a, 0
   ret z ; There is no last step.
 
   ld a, 0
-  ld [can_withdraw], a
+  ld [can_undo], a
 
   ld a, [step]
   dec a
@@ -382,8 +383,8 @@ LevelPlay:
   ld a, [man_pos + 1]
   ld h, a
 
-  jr z, .withdraw_move_box
-.withdraw_not_move_box:
+  jr z, .undo_move_box
+.undo_not_move_box:
   call WaitVBlank
   
   ld a, [hl]
@@ -419,7 +420,7 @@ LevelPlay:
   ld a, MAN_ON_GOAL
   ld [hl], a
   ret
-.withdraw_move_box:
+.undo_move_box:
   call WaitVBlank
   ; Input hl the character
   ; bc: the reverse of direction
@@ -439,6 +440,7 @@ LevelPlay:
   call nz, .togoal
   call nz, .deccnt2
 
+  ; To the original place
   add hl, bc
   add hl, bc
 
@@ -692,7 +694,7 @@ ResetVariables:
   ld [box_num], a
   ld [move_box], a
   ld [direction], a
-  ld [can_withdraw], a
+  ld [can_undo], a
   ret
 
 CopyTilesToVRAM:
@@ -771,4 +773,4 @@ temp_digit:DS 3
 step:      DS 1
 move_box:  DS 1  ;If the last step move boxes
 direction:  DS 2  ;The direction of the last step
-can_withdraw: DS 1
+can_undo: DS 1
