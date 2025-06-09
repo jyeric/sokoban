@@ -67,8 +67,7 @@ LevelLoad:
   xor a
   ld [box_num], a
   ld [step], a
-  ld [can_withdraw], a
-
+  ld [can_undo], a
   ; Select level and load it
   ld a, [level]
   ld hl, LevelTable
@@ -130,7 +129,7 @@ LevelLoad:
   ret
 
 LevelPlay:
-  call WaitVBlank
+  call WaitVBlank ; Avoid jitter
   call readKeys
   ; bit 7: down
   ; bit 6: up
@@ -156,18 +155,19 @@ LevelPlay:
   
   ld a, b
   ; Get the object where the person will move
-  bit 7, a
+  bit 7, b
   jr nz, .move_down
-  bit 6, a
+  bit 6, b
   jr nz, .move_up
-  bit 5, a
+  bit 5, b
   jr nz, .move_left
-  bit 4, a
+  bit 4, b
   jr nz, .move_right
-  bit 3, a
+  bit 3, b
   jr nz, .reset
-  bit 2, a
-  jp nz, .withdraw_last_step
+  bit 2, b
+  jp nz, .undo_last_step
+  ret
 .reset:
   ld a, LEVEL_LOAD_STATE
   ld [state], a      ; Set state to LevelWin
@@ -191,12 +191,14 @@ LevelPlay:
   ld a, 0
   ld [move_box], a
 
+  ; Write de into variable direction (move)
   ld a, d
   ld [direction], a
   ld a, e
   ld [direction + 1], a
 
   call WaitVBlank
+  ; Save man's position into bc
   ld b, h
   ld c, l ; bc = hl
   add hl, de
@@ -212,6 +214,7 @@ LevelPlay:
   jr z, .movegoal
 
   ; The only possbility now is the box or BOX_ON_GOAL
+  ; Let hl += de. Move hl pointer two steps from man's position
   add hl, de
   ld b, a
   ld a, [hl]
@@ -223,7 +226,7 @@ LevelPlay:
   ret z      ; We cannot move the box
 .movebox:
   ld a, 1
-  ld [move_box], a ; We move the box in this step
+  ld [move_box], a ;  Record that we move the box in this step
   call WaitVBlank
   ld a, [hl]
   cp a, GOAL
@@ -242,7 +245,7 @@ LevelPlay:
   inc de
   add hl, de
 
-  ; Record person's position
+  ; Record person's position since the man move one step (move the box)
   ld a, l
   ld [man_pos], a
   ld a, h
@@ -254,7 +257,7 @@ LevelPlay:
   ld a, MAN ; will be written as goal by calling
   ld [hl], a
   call z, .deccnt
-  ;Processing the man
+  ; Processing the original man's position
   add hl, de
   ld a, [hl]
   cp a, MAN_ON_GOAL
@@ -310,7 +313,7 @@ LevelPlay:
   ld a, [bc]
   cp MAN
   jr z, .mantospace
-  jr .mantogoal
+  ; jr .mantogoal
 .mantogoal:
   ld a, GOAL
   ld [bc], a
@@ -320,7 +323,7 @@ LevelPlay:
   ld [bc], a
 .win:
   ld a, 1 
-  ld [can_withdraw], a
+  ld [can_undo], a
 
   ; Add addtional step
   ld a, [step]
@@ -339,13 +342,13 @@ LevelPlay:
   ld [state], a      ; Set state to LevelWin
   ret
 
-.withdraw_last_step:
-  ld a, [can_withdraw]
+.undo_last_step:
+  ld a, [can_undo]
   cp a, 0
   ret z ; There is no last step.
 
   ld a, 0
-  ld [can_withdraw], a
+  ld [can_undo], a
 
   ld a, [step]
   dec a
@@ -381,8 +384,8 @@ LevelPlay:
   ld a, [man_pos + 1]
   ld h, a
 
-  jr z, .withdraw_move_box
-.withdraw_not_move_box:
+  jr z, .undo_move_box
+.undo_not_move_box:
   call WaitVBlank
   
   ld a, [hl]
@@ -418,7 +421,7 @@ LevelPlay:
   ld a, MAN_ON_GOAL
   ld [hl], a
   ret
-.withdraw_move_box:
+.undo_move_box:
   call WaitVBlank
   ; Input hl the character
   ; bc: the reverse of direction
@@ -438,6 +441,7 @@ LevelPlay:
   call nz, .togoal
   call nz, .deccnt2
 
+  ; To the original place
   add hl, bc
   add hl, bc
 
@@ -700,7 +704,7 @@ ResetVariables:
   ld [box_num], a
   ld [move_box], a
   ld [direction], a
-  ld [can_withdraw], a
+  ld [can_undo], a
   ret
 
 CopyTilesToVRAM:
@@ -777,6 +781,6 @@ man_pos:   DS 2
 box_num:   DS 1
 buffer:    DS 3
 step:      DS 1
-move_box:  DS 1  ; If the last step move boxes
-direction: DS 2  ; The direction of the last step
-can_withdraw: DS 1
+move_box:  DS 1  ;If the last step move boxes
+direction:  DS 2  ;The direction of the last step
+can_undo: DS 1
