@@ -205,7 +205,7 @@ LevelPlay:
   ld a, [hl]
   ; Cannot move
   cp a, WALL ; cannot move
-  ret z
+  jr z, .cannotmove
   ; Will not move the box
   ld a, [hl]
   cp a, SPACE
@@ -219,11 +219,11 @@ LevelPlay:
   ld b, a
   ld a, [hl]
   cp a, WALL
-  ret z      ; We cannot move the box
+  jr z, .cannotmove      ; We cannot move the box
   cp a, BOX
-  ret z      ; We cannot move the box
+  jr z, .cannotmove      ; We cannot move the box
   cp a, BOX_ON_GOAL
-  ret z      ; We cannot move the box
+  jr z, .cannotmove      ; We cannot move the box
 .movebox:
   ld a, 1
   ld [move_box], a ;  Record that we move the box in this step
@@ -266,6 +266,10 @@ LevelPlay:
   jr z, .removemanfromgoal
   jr .win
 
+.cannotmove:
+  ld a, 0 
+  ld [can_undo], a
+  ret
 .addcnt:
   ld a, BOX_ON_GOAL
   ld [hl], a
