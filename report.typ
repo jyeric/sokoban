@@ -29,6 +29,8 @@
   body
 }
 
+#pdf.embed("sokoban.zip")
+
 #show: style
 
 #outline()
@@ -61,8 +63,7 @@
 + Arrow keys `->` Control the movement of the player;
 + Start `->` Restart this level;
 + Select `->` Undo one step, nothing to do if already undone;
-+ B button `->` Jump into next level (developer mode);
-+ A button `->` No any effects.
++ A/B button `->` No any effects.
 
 = Implementation Description
 
