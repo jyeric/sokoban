@@ -682,25 +682,8 @@ WaitVBlank:
   jr nz, WaitVBlank
   ret
 
-ResetOAM:
-; input:
-; * HL: location of OAM or Shadow OAM
-  ld b, 40*4
-  xor a ; a = 0
-.loop:
-  ld [hl], a
-  inc hl
-  dec b
-  jr nz, .loop
-  ret
-
 ResetVariables:
-; Initialize all variables of the program to 0,
-; including OAMs
-  ld hl, ShadowOAM
-  call ResetOAM
-  ld hl, _OAMRAM
-  call ResetOAM
+; Initialize all variables of the program to 0
   xor a ; a = 0
   ld [state], a
   ld [level], a
@@ -727,20 +710,6 @@ CopyTilesToVRAM:
   ld a, b
   or c
   jr nz, .copy
-  ret
-
-CopyShadowOAMtoOAM:
-  ld hl, ShadowOAM
-  ld de, _OAMRAM
-  ld b, 40
-.loop:
-REPT 4
-  ld a, [hl+]
-  ld [de], a
-  inc e
-ENDR
-  dec b
-  jr nz, .loop
   ret
 
 readKeys:
@@ -781,13 +750,12 @@ readKeys:
 SECTION "Variables", WRAM0
 state:     DS 1
 level:     DS 1
-ShadowOAM: DS 160
 previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
 man_pos:   DS 2
 box_num:   DS 1
 buffer:    DS 3
 step:      DS 1
-move_box:  DS 1  ;If the last step move boxes
-direction:  DS 2  ;The direction of the last step
-can_undo: DS 1
+move_box:  DS 1  ; If the last step move boxes
+direction: DS 2  ; The direction of the last step
+can_undo:  DS 1
