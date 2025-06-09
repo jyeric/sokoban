@@ -164,6 +164,12 @@ LevelPlay:
   jr nz, .reset
   bit 2, b
   jp nz, .withdraw_last_step
+  bit 1, b
+  jp nz, .next_level
+.next_level:
+  ld a, LEVEL_WIN_STATE
+  ld [state], a      ; Set state to LevelWin
+  ret
 .reset:
   ld a, LEVEL_LOAD_STATE
   ld [state], a      ; Set state to LevelWin
