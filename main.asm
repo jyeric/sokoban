@@ -487,18 +487,24 @@ undo_last_step:
   ret
 
 ReadManLocation:
+; Output: 
+; * hl: man's location
   ld a, [man_pos]
   ld l, a
   ld a, [man_pos + 1]
   ld h, a
   ret 
 SaveManLocation:
+; Input: 
+; * hl: man's location
   ld a, l
   ld [man_pos], a
   ld a, h
   ld [man_pos + 1], a
   ret 
 SaveDirection:
+; input: 
+; * DE: diretion
   ld a, d
   ld [direction], a
   ld a, e
