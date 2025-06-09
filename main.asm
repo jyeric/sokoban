@@ -148,10 +148,7 @@ LevelPlay:
   ; Get the position of the player
   ; hl The BG0 place
   ; de man's additional pos
-  ld a, [man_pos]
-  ld l, a
-  ld a, [man_pos + 1]
-  ld h, a
+  call ReadManLocation
   
   ld a, b
   ; Get the object where the person will move
@@ -166,7 +163,7 @@ LevelPlay:
   bit 3, b
   jr nz, .reset
   bit 2, b
-  jp nz, .undo_last_step
+  jp nz, undo_last_step
   ret
 .reset:
   ld a, LEVEL_LOAD_STATE
@@ -175,21 +172,18 @@ LevelPlay:
 ;Output:
 .move_down:
   ld de, 32
-  jr .move
+  jr move
 .move_up:
   ld de, -32
-  jr .move
+  jr move
 .move_left:
   ld de, -1
-  jr .move
+  jr move
 .move_right:
   ld de, 1
-  jr .move
-.move:
+  jr move
+move:
   ; Reset Variables
-  ld a, 0
-  ld [move_box], a
-
   call WaitVBlank
   ; Save man's position into bc
   ld b, h
@@ -204,7 +198,7 @@ LevelPlay:
   cp a, SPACE
   jr z, .movespace ; move to space
   cp a, GOAL
-  jp z, .movegoal
+  jr z, .movegoal
 
   ; The only possbility now is the box or BOX_ON_GOAL
   ; Let hl += de. Move hl pointer two steps from man's position
@@ -219,18 +213,16 @@ LevelPlay:
   ret z      ; We cannot move the box
 .movebox:
   ; Write de into variable direction (move)
-  ld a, d
-  ld [direction], a
-  ld a, e
-  ld [direction + 1], a
+  call SaveDirection
 
   ld a, 1
   ld [move_box], a ;  Record that we move the box in this step
+  
   ld a, [hl]
   cp a, GOAL
   ld a, BOX ; will be written as goal_on_box by calling
   ld [hl], a ; Move the box
-  call z, .addcnt
+  call z, .tobox_to_goal
 
   ;Processing with the box next to next to it
   ; Now de = -de
@@ -244,55 +236,46 @@ LevelPlay:
   add hl, de
 
   ; Record person's position since the man move one step (move the box)
-  ld a, l
-  ld [man_pos], a
-  ld a, h
-  ld [man_pos + 1], a
+  call SaveManLocation
 
   ld a, [hl]
   cp a, BOX_ON_GOAL
   ld a, MAN ; will be written as goal by calling
   ld [hl], a
-  call z, .deccnt
+  call z, .toman_to_goal
   ; Processing the original man's position
   add hl, de
   ld a, [hl]
   cp a, MAN_ON_GOAL
   ld a, SPACE
   ld [hl], a
-  jr z, .removemanfromgoal
+  jr z, .togoal
   jr .win
 
-.addcnt:
+.tobox_to_goal:
   ld a, BOX_ON_GOAL
   ld [hl], a
   ld a, [box_num]
   dec a
   ld [box_num], a
   ret
-.deccnt:
+.toman_to_goal:
   ld a, MAN_ON_GOAL
   ld [hl], a
   ld a, [box_num]
   inc a
   ld [box_num], a
   ret
-.removemanfromgoal:
+.togoal:
   ld a, GOAL
   ld [hl], a
   jr .win ; the last function; don't need to call/ret
 .movespace:
   ; Write de into variable direction (move)
-  ld a, d
-  ld [direction], a
-  ld a, e
-  ld [direction + 1], a
+  call SaveDirection
 
   ; Record person's position
-  ld a, l
-  ld [man_pos], a
-  ld a, h
-  ld [man_pos + 1], a
+  call SaveManLocation
 
   ld a, MAN
   ld [hl], a
@@ -303,16 +286,10 @@ LevelPlay:
   jr .mantogoal
 .movegoal
   ; Write de into variable direction (move)
-  ld a, d
-  ld [direction], a
-  ld a, e
-  ld [direction + 1], a
+  call SaveDirection
 
   ; Record person's position
-  ld a, l
-  ld [man_pos], a
-  ld a, h
-  ld [man_pos + 1], a
+  call SaveManLocation
 
   ld a, MAN_ON_GOAL
   ld [hl], a
@@ -324,7 +301,7 @@ LevelPlay:
 .mantogoal:
   ld a, GOAL
   ld [bc], a
-  jp .win
+  jr .win
 .mantospace:
   ld a, SPACE
   ld [bc], a
@@ -348,140 +325,6 @@ LevelPlay:
   ld a, LEVEL_WIN_STATE
   ld [state], a      ; Set state to LevelWin
   ret
-
-.undo_last_step:
-  ld a, [can_undo]
-  cp a, 0
-  ret z ; There is no last step.
-
-  ld a, 0
-  ld [can_undo], a
-
-  ld a, [step]
-  dec a
-  ld [step], a
-  call binToDec
-  ld de, _SCRN0 + START_POINT_OF_STEP_NUM
-  call copyDigitsRev
-
-  ld a, [direction]
-  ld b, a
-  ld a, [direction + 1]
-  ld c, a
-
-  ; de = bc
-  ld d, b
-  ld e, c
-  ; Reverse bc
-  ld a, b
-  cpl 
-  ld b, a
-  ld a, c
-  cpl 
-  ld c, a
-  inc bc
-
-  ld a, [move_box]
-  cp 1
-
-  ; Get the position of the player
-  ; hl The man's position
-  ld a, [man_pos]
-  ld l, a
-  ld a, [man_pos + 1]
-  ld h, a
-
-  jr z, .undo_move_box
-.undo_not_move_box:
-  call WaitVBlank
-  
-  ld a, [hl]
-  cp MAN_ON_GOAL
-  call z, .togoal
-  call nz, .tospace
-  add hl, bc ; + direction
-
-  
-  ld a, l
-  ld [man_pos], a
-  ld a, h
-  ld [man_pos + 1], a
-
-  ld a, [hl]
-  cp SPACE
-  call z, .toman
-  call nz, .toman_on_goal
-  ret
-.togoal:
-  ld a, GOAL
-  ld [hl], a
-  ret
-.tospace:
-  ld a, SPACE
-  ld [hl], a
-  ret
-.toman:
-  ld a, MAN
-  ld [hl], a
-  ret
-.toman_on_goal:
-  ld a, MAN_ON_GOAL
-  ld [hl], a
-  ret
-.undo_move_box:
-  call WaitVBlank
-  ; Input hl the character
-  ; bc: the reverse of direction
-  ; de: direction
-  ; hl + de : the box
-  ; hl + bc : the original place
-  ld a, [hl]
-  cp a, MAN_ON_GOAL
-  call z, .tobox_on_goal
-  call nz, .tobox
-  call z, .inccnt2
-  
-  add hl, de
-  ld a, [hl]
-  cp a, BOX
-  call z, .tospace
-  call nz, .togoal
-  call nz, .deccnt2
-
-  ; To the original place
-  add hl, bc
-  add hl, bc
-
-  ld a, l
-  ld [man_pos], a
-  ld a, h
-  ld [man_pos + 1], a
-
-  ld a, [hl]
-  cp a, SPACE
-  call z, .toman
-  call nz, .toman_on_goal
-  ret
-.tobox:
-  ld a, BOX
-  ld [hl], a
-  ret
-.tobox_on_goal:
-  ld a, BOX_ON_GOAL
-  ld [hl], a
-  ret
-.deccnt2:
-  ld a, [box_num]
-  inc a
-  ld [box_num], a
-  ret
-.inccnt2:
-  ld a, [box_num]
-  dec a
-  ld [box_num], a
-  ret
-
-
 
 LevelWin:
   ld a, [level]
@@ -518,6 +361,151 @@ GameWin:
 
 
 SECTION "Functions", ROM0
+undo_last_step:
+  ; No inputs and outputs
+  ; All variables will be used without save
+  ld a, [can_undo]
+  cp a, 0
+  ret z ; There is no last step.
+
+  ld a, 0
+  ld [can_undo], a
+
+  ld a, [step]
+  dec a
+  ld [step], a
+  call binToDec
+  ld de, _SCRN0 + START_POINT_OF_STEP_NUM
+  call copyDigitsRev
+
+  ld a, [direction]
+  ld b, a
+  ld a, [direction + 1]
+  ld c, a
+
+  ; de = bc
+  ld d, b
+  ld e, c
+  ; Reverse bc
+  ld a, b
+  cpl 
+  ld b, a
+  ld a, c
+  cpl 
+  ld c, a
+  inc bc
+
+  ld a, [move_box]
+  cp 1
+
+  ; Get the position of the player
+  ; hl The man's position
+  call ReadManLocation
+  
+  jr z, .undo_move_box
+.undo_not_move_box:
+  call WaitVBlank
+  
+  ld a, [hl]
+  cp MAN_ON_GOAL
+  call z, .togoal
+  call nz, .tospace
+  add hl, bc ; + direction
+
+  call SaveManLocation
+
+  ld a, [hl]
+  cp SPACE
+  call z, .toman
+  call nz, .toman_on_goal
+  ret
+.undo_move_box:
+  call WaitVBlank
+  ; Input hl the character
+  ; bc: the reverse of direction
+  ; de: direction
+  ; hl + de : the box
+  ; hl + bc : the original place
+  ld a, [hl]
+  cp a, MAN_ON_GOAL
+  call nz, .tobox
+  call z, .tobox_on_goal
+  
+  add hl, de
+  ld a, [hl]
+  cp a, BOX
+  call z, .tospace
+  call nz, .togoal
+  call nz, .inc_box_num
+
+  ; To the original place
+  add hl, bc
+  add hl, bc
+
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+
+  ld a, [hl]
+  cp a, SPACE
+  call z, .toman
+  call nz, .toman_on_goal
+  ret
+.togoal:
+  ld a, GOAL
+  ld [hl], a
+  ret
+.tospace:
+  ld a, SPACE
+  ld [hl], a
+  ret
+.toman:
+  ld a, MAN
+  ld [hl], a
+  ret
+.toman_on_goal:
+  ld a, MAN_ON_GOAL
+  ld [hl], a
+  ret
+.tobox:
+  ld a, BOX
+  ld [hl], a
+  ret
+.tobox_on_goal:
+  ; Warn: This will change z/nz
+  ld a, BOX_ON_GOAL
+  ld [hl], a
+  ld a, [box_num]
+  dec a
+  ld [box_num], a
+  ret
+.inc_box_num:
+  ld a, [box_num]
+  inc a
+  ld [box_num], a
+  ret
+
+ReadManLocation:
+  ld a, [man_pos]
+  ld l, a
+  ld a, [man_pos + 1]
+  ld h, a
+  ret 
+SaveManLocation:
+  ld a, l
+  ld [man_pos], a
+  ld a, h
+  ld [man_pos + 1], a
+  ret 
+SaveDirection:
+  ld a, d
+  ld [direction], a
+  ld a, e
+  ld [direction + 1], a
+  ld a, 0
+  ld [move_box], a
+  ret
 LoadLevelMap:
 ; Load the level data from DE into BG
 ; while scanning the map for the player and boxes
