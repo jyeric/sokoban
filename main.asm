@@ -190,12 +190,6 @@ LevelPlay:
   ld a, 0
   ld [move_box], a
 
-  ; Write de into variable direction (move)
-  ld a, d
-  ld [direction], a
-  ld a, e
-  ld [direction + 1], a
-
   call WaitVBlank
   ; Save man's position into bc
   ld b, h
@@ -210,7 +204,7 @@ LevelPlay:
   cp a, SPACE
   jr z, .movespace ; move to space
   cp a, GOAL
-  jr z, .movegoal
+  jp z, .movegoal
 
   ; The only possbility now is the box or BOX_ON_GOAL
   ; Let hl += de. Move hl pointer two steps from man's position
@@ -224,6 +218,12 @@ LevelPlay:
   cp a, BOX_ON_GOAL
   ret z      ; We cannot move the box
 .movebox:
+  ; Write de into variable direction (move)
+  ld a, d
+  ld [direction], a
+  ld a, e
+  ld [direction + 1], a
+
   ld a, 1
   ld [move_box], a ;  Record that we move the box in this step
   call WaitVBlank
@@ -284,6 +284,12 @@ LevelPlay:
   ld [hl], a
   jr .win ; the last function; don't need to call/ret
 .movespace:
+  ; Write de into variable direction (move)
+  ld a, d
+  ld [direction], a
+  ld a, e
+  ld [direction + 1], a
+
   ; Record person's position
   call WaitVBlank
   ld a, l
@@ -299,6 +305,12 @@ LevelPlay:
   jr z, .mantospace
   jr .mantogoal
 .movegoal
+  ; Write de into variable direction (move)
+  ld a, d
+  ld [direction], a
+  ld a, e
+  ld [direction + 1], a
+
   ; Record person's position
   call WaitVBlank
   ld a, l
