@@ -152,17 +152,17 @@ LevelPlay:
   
   ld a, b
   ; Get the object where the person will move
-  bit 7, a
+  bit 7, b
   jr nz, .move_down
-  bit 6, a
+  bit 6, b
   jr nz, .move_up
-  bit 5, a
+  bit 5, b
   jr nz, .move_left
-  bit 4, a
+  bit 4, b
   jr nz, .move_right
-  bit 3, a
+  bit 3, b
   jr nz, .reset
-  bit 2, a
+  bit 2, b
   jp nz, .withdraw_last_step
 .reset:
   ld a, LEVEL_LOAD_STATE
@@ -187,12 +187,14 @@ LevelPlay:
   ld a, 0
   ld [move_box], a
 
+  ; Write de into variable direction (move)
   ld a, d
   ld [direction], a
   ld a, e
   ld [direction + 1], a
 
   call WaitVBlank
+  ; Save man's position into bc
   ld b, h
   ld c, l ; bc = hl
   add hl, de
@@ -208,6 +210,7 @@ LevelPlay:
   jr z, .movegoal
 
   ; The only possbility now is the box or BOX_ON_GOAL
+  ; Let hl += de. Move hl pointer two steps from man's position
   add hl, de
   ld b, a
   ld a, [hl]
@@ -219,7 +222,7 @@ LevelPlay:
   ret z      ; We cannot move the box
 .movebox:
   ld a, 1
-  ld [move_box], a ; We move the box in this step
+  ld [move_box], a ;  Record that we move the box in this step
   call WaitVBlank
   ld a, [hl]
   cp a, GOAL
@@ -238,7 +241,7 @@ LevelPlay:
   inc de
   add hl, de
 
-  ; Record person's position
+  ; Record person's position since the man move one step (move the box)
   ld a, l
   ld [man_pos], a
   ld a, h
@@ -250,7 +253,7 @@ LevelPlay:
   ld a, MAN ; will be written as goal by calling
   ld [hl], a
   call z, .deccnt
-  ;Processing the man
+  ; Processing the original man's position
   add hl, de
   ld a, [hl]
   cp a, MAN_ON_GOAL
@@ -306,7 +309,7 @@ LevelPlay:
   ld a, [bc]
   cp MAN
   jr z, .mantospace
-  jr .mantogoal
+  ; jr .mantogoal
 .mantogoal:
   ld a, GOAL
   ld [bc], a
