@@ -54,9 +54,8 @@ StateMachine:         ; From labnotes.html#jump-table-application-state-machines
 
 Splash:
   call readKeys
-  ld a, PADF_START
-  and b
-  jr z, Splash
+  bit PADB_START, b
+  jr z, Splash        ; Wait for start button to be pressed
   ld a, LEVEL_LOAD_STATE
   ld [state], a
   xor a ; a = 0
@@ -79,7 +78,7 @@ LevelLoad:
   add hl, de        ; 3 bytes per entry
   ld e, [hl]
   inc hl
-  ld d, [hl]
+  ld d, [hl]        ; de = address of the level map
   inc hl
   ld b, [hl]        ; b = number of rows to load >= 3
   ld a, 18
@@ -103,19 +102,23 @@ LevelLoad:
   ld l, c           ; hl += 0c <=> l = c as no overflow
   call LoadLevelMap
 
+  ld a, "L"
+  ld [_SCRN0 + START_POINT_OF_LEVEL_NAME], a
+  ld a, "V"
+  ld [_SCRN0 + START_POINT_OF_LEVEL_NAME + 1], a ; Write "LV" at the top left corner
+
   ; Load Level name and steps
   ld a, [level]
   inc a
   call binToDec
-  ld d, START_POINT_OF_LEVEL_1
-  ld e, START_POINT_OF_LEVEL_2
+  ld de, _SCRN0 + START_POINT_OF_LEVEL_NAME + 2
   call copyDigitsRev
 
-  ld a, 0
-  call binToDec
-  ld d, START_POINT_OF_STEP_1
-  ld e, START_POINT_OF_STEP_2
-  call copyDigitsRev
+  ld hl, _SCRN0 + START_POINT_OF_STEP_NUM
+  ld a, "0"
+  ld [hl+], a
+  ld [hl+], a
+  ld [hl], a ; Write "000" at the top right corner
 
   ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
   ld [rLCDC], a
@@ -327,8 +330,7 @@ LevelPlay:
   inc a
   ld [step], a
   call binToDec
-  ld d, START_POINT_OF_STEP_1
-  ld e, START_POINT_OF_STEP_2
+  ld de, _SCRN0 + START_POINT_OF_STEP_NUM
   call copyDigitsRev
   ; Check whether win or not
   ld a, [box_num]
@@ -352,8 +354,7 @@ LevelPlay:
   dec a
   ld [step], a
   call binToDec
-  ld d, START_POINT_OF_STEP_1
-  ld e, START_POINT_OF_STEP_2
+  ld de, _SCRN0 + START_POINT_OF_STEP_NUM
   call copyDigitsRev
 
   ld a, [direction]
@@ -486,8 +487,7 @@ LevelWin:
   ld [rLCDC], a
 .loop:
   call readKeys
-  ld a, PADF_START
-  and b
+  bit PADB_START, b
   jr z, .loop
   ld a, LEVEL_LOAD_STATE
   ld [state], a
@@ -497,24 +497,16 @@ LevelWin:
 
 GameWin:
   call WaitVBlank
-  xor a
+  xor a                 ; a = 0
   ld [rLCDC], a         ; turn off the screen
   ld de, GameWinScreen
   ld hl, _SCRN1
   ld b, 18
-  call LoadBG
+  call LoadBG           ; Load the Game Win Screen
   ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9C00 ; Switch to _SCRN1
   ld [rLCDC], a
 .loop:
   jr .loop
-  ; call readKeys
-  ; ld a, PADF_START
-  ; and b
-  ; jr z, .loop
-  ; ld a, LEVEL_LOAD_STATE
-  ; ld [state], a
-  ; ld hl, level
-  ; inc [hl]
   ret
 
 
@@ -529,6 +521,7 @@ LoadLevelMap:
 .row_loop:
   ld c, 5
 .tiles_loop:
+  ; Loop unrolled for 4 tiles
 REPT 4
   ld a, [de]
   inc de
@@ -553,43 +546,55 @@ ENDR
   ret
 
 binToDec:
-; Input: a, the 16 bit digit
-; Output: b, the third digit
-;         c, the second digit
-;         d, the first digit
-  ld hl, temp_digit
+; Input:
+; * A: the 8 bit integer to convert to decimal
+; Output:
+; * HL: pointer to the end of the 3 bytes buffer
+;       to store the decimal digits
+  ld hl, buffer
+  ; Loop unrolled for 3 digits
+  ; First digit
   ld b, 0
-  ld c, 0
-  ld d, 0
-  ld e, a
-.getThirdDigit
-  cp 100 ;a < 100
-  jr c, .getSecondDigit
-  sub 100
-  inc b
-  jr .getThirdDigit
-.getSecondDigit
-  cp 10 ;a < 10
-  jr c, .getFirstDigit
+.div_1:
   sub 10
-  inc c
-  jr .getSecondDigit
-.getFirstDigit
-  cp 1 ;a < 1
-  jr c, .end
-  sub 1
-  inc d
-  jr .getFirstDigit
-.end:
-  ld [hl], d
-  inc hl
-  ld [hl], c
-  inc hl
-  ld [hl], b
+  jr c, .end_1
+  inc b
+  jr .div_1
+.end_1:
+  add 10
+  ld [hl+], a
+  ld a, b
+
+  ; Second digit
+  ld b, 0
+.div_2:
+  sub 10
+  jr c, .end_2
+  inc b
+  jr .div_2
+.end_2:
+  add 10
+  ld [hl+], a
+  ld a, b
+
+  ; Third digit
+  ld b, 0
+.div_3:
+  sub 10
+  jr c, .end_3
+  inc b
+  jr .div_3
+.end_3:
+  add 10
+  ld [hl], a
+  ld a, b
+
   ret
 
 copyDigitsRev:
-  ; Input: de: the starting point of BG to write
+; Input:
+; * DE: the starting point of BG to write
+; * HL: the location of the digits to write
   ld a, [hl-]
   ld [de], a
   inc de
@@ -602,6 +607,9 @@ copyDigitsRev:
   ret
 
 ProcessManTile:
+; For LevelLoad
+; input:
+; * HL: location of the man tile in BG
   ld a, l
   dec a
   ld [man_pos], a
@@ -610,6 +618,7 @@ ProcessManTile:
   ret
 
 ProcessBoxTile:
+; For LevelLoad
   ld a, [box_num]
   inc a
   ld [box_num], a
@@ -623,6 +632,7 @@ LoadBG:
 .row_loop:
   ld c, 5
 .tiles_loop:
+  ; Loop unrolled for 4 tiles
 REPT 4
   ld a, [de]
   ld [hl+], a
@@ -769,7 +779,7 @@ previous:  DS 1  ; Used by readKeys
 current:   DS 1  ; Used by readKeys
 man_pos:   DS 2
 box_num:   DS 1
-temp_digit:DS 3
+buffer:    DS 3
 step:      DS 1
 move_box:  DS 1  ;If the last step move boxes
 direction:  DS 2  ;The direction of the last step
