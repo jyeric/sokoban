@@ -526,13 +526,14 @@ LoadLevelMap:
 REPT 4
   ld a, [de]
   inc de
-  ld [hl+], a
+  ld [hl], a
   cp MAN
-  call z, ProcessManTile
+  call z, SaveManLocation
   cp MAN_ON_GOAL
-  call z, ProcessManTile
+  call z, SaveManLocation
   cp BOX
   call z, ProcessBoxTile
+  inc hl
 ENDR
   dec c
   jr nz, .tiles_loop
@@ -605,17 +606,6 @@ copyDigitsRev:
   ld a, [hl-]
   ld [de], a
   inc de
-  ret
-
-ProcessManTile:
-; For LevelLoad
-; input:
-; * HL: location of the man tile in BG
-  ld a, l
-  dec a
-  ld [man_pos], a
-  ld a, h
-  ld [man_pos + 1], a
   ret
 
 ProcessBoxTile:
