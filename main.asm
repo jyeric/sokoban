@@ -226,7 +226,6 @@ LevelPlay:
 
   ld a, 1
   ld [move_box], a ;  Record that we move the box in this step
-  call WaitVBlank
   ld a, [hl]
   cp a, GOAL
   ld a, BOX ; will be written as goal_on_box by calling
@@ -250,7 +249,6 @@ LevelPlay:
   ld a, h
   ld [man_pos + 1], a
 
-  call WaitVBlank
   ld a, [hl]
   cp a, BOX_ON_GOAL
   ld a, MAN ; will be written as goal by calling
@@ -291,7 +289,6 @@ LevelPlay:
   ld [direction + 1], a
 
   ; Record person's position
-  call WaitVBlank
   ld a, l
   ld [man_pos], a
   ld a, h
@@ -312,7 +309,6 @@ LevelPlay:
   ld [direction + 1], a
 
   ; Record person's position
-  call WaitVBlank
   ld a, l
   ld [man_pos], a
   ld a, h
