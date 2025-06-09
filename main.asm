@@ -670,8 +670,23 @@ WaitVBlank:
   jr nz, WaitVBlank
   ret
 
+ResetOAM:
+; input:
+; * HL: location of OAM or Shadow OAM
+  ld b, 40*4
+  xor a ; a = 0
+.loop:
+  ld [hl], a
+  inc hl
+  dec b
+  jr nz, .loop
+  ret
+
 ResetVariables:
-; Initialize all variables of the program to 0
+; Initialize all variables of the program to 0,
+; including the OAM
+  ld hl, _OAMRAM
+  call ResetOAM
   xor a ; a = 0
   ld [state], a
   ld [level], a
